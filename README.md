@@ -2,7 +2,7 @@
 
 A comprehensive platform for managing resumes, job applications, and career opportunities with AI-powered features.
 
-## 🚀 Features
+## Features
 
 ### Authentication
 - Email/Password authentication
@@ -42,7 +42,7 @@ A comprehensive platform for managing resumes, job applications, and career oppo
    - Save/load drafts
    - Download compiled PDF
 
-## 📋 Prerequisites
+## Prerequisites
 
 ### System Requirements
 - Node.js 18+ and npm/yarn
@@ -157,7 +157,7 @@ VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 4. Get your Firebase config
 5. Update `frontend/src/firebase.js` with your config
 
-## 🚀 Running the Application
+## Running the Application
 
 ### Start MongoDB
 ```bash
@@ -185,7 +185,7 @@ yarn dev
 ```
 Frontend runs on `http://localhost:5173`
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 project-thunder/
@@ -227,7 +227,7 @@ project-thunder/
 └── README.md
 ```
 
-## 🔑 Key Features Explained
+## Key Features Explained
 
 ### 1. Authentication with Method Tracking
 When users log in via Google or Email, their auth method is tracked and displayed throughout the onboarding process with appropriate icons:
@@ -258,7 +258,7 @@ A full-featured editor similar to Overleaf:
 - Font size adjustment
 - Download compiled PDF
 
-## 🎨 Resume Template Format
+## Resume Template Format
 
 Create templates with placeholders:
 
@@ -287,7 +287,7 @@ GitHub: {{GITHUB}}
 
 Or in DOCX, simply use placeholders like `{{NAME}}` where you want data inserted.
 
-## 📊 API Endpoints
+## API Endpoints
 
 ### Authentication
 - `POST /api/auth/register` - Register with email
@@ -316,7 +316,7 @@ Or in DOCX, simply use placeholders like `{{NAME}}` where you want data inserted
 - `GET /api/draft/:id` - Get specific draft
 - `GET /api/pdf/:filename` - Serve compiled PDF
 
-## 🔧 Troubleshooting
+## Troubleshooting
 
 ### LaTeX Compilation Issues
 ```bash
@@ -345,7 +345,7 @@ lsof -ti:8000 | xargs kill -9  # macOS/Linux
 netstat -ano | findstr :8000   # Windows (then kill PID)
 ```
 
-## 🌐 Environment Variables
+## Environment Variables
 
 ### Backend (.env)
 ```env
@@ -362,7 +362,7 @@ VITE_API_URL=http://localhost:8000
 VITE_GOOGLE_CLIENT_ID=your-client-id
 ```
 
-## 📝 Usage Guide
+## Usage Guide
 
 ### Creating a Resume with Templates
 1. Go to Dashboard → Resume Templates
@@ -379,7 +379,7 @@ VITE_GOOGLE_CLIENT_ID=your-client-id
 5. Save drafts for later editing
 6. Download final PDF
 
-## 🔐 Security Notes
+## Security Notes
 
 - Never commit `.env` files
 - Change SECRET_KEY in production
@@ -387,7 +387,7 @@ VITE_GOOGLE_CLIENT_ID=your-client-id
 - Set up proper CORS policies
 - Use environment-specific Firebase configs
 
-## 🚀 Deployment
+## Deployment
 
 ### Backend (Render/Railway/Heroku)
 1. Set environment variables
