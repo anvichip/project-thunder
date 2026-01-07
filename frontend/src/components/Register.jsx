@@ -1,4 +1,4 @@
-// Register.jsx
+// src/components/Register.jsx - FIXED
 import { useState } from 'react';
 import { authAPI } from '../services/api';
 import { app } from "../firebase";
@@ -22,10 +22,13 @@ const RegisterPage = ({ onRegister, onSwitchToLogin }) => {
     setLoading(true);
 
     try {
+      console.log('Starting Google sign-up...');
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
+      console.log('Google sign-up successful:', user.email);
 
       // Send Firebase user data to backend
+      console.log('Sending to backend...');
       const response = await authAPI.firebaseAuth(
         user.uid,
         user.email,
@@ -33,23 +36,34 @@ const RegisterPage = ({ onRegister, onSwitchToLogin }) => {
         user.photoURL
       );
 
+      console.log('Backend response:', response);
+
       // Store token and user data
       localStorage.setItem('access_token', response.access_token);
       localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('auth_method', 'google');
 
-      onRegister(response.user);
+      // Call parent handler
+      onRegister(response.user, 'google');
     } catch (err) {
       console.error('Google sign-up error:', err);
-      setError(err.response?.data?.detail || 'Google sign-up failed. Please try again.');
+      if (err.response) {
+        console.error('Response data:', err.response.data);
+        console.error('Response status:', err.response.status);
+      }
+      setError(err.response?.data?.detail || err.message || 'Google sign-up failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    
     setError('');
     setLoading(true);
 
+    // Validation
     if (!formData.username || !formData.email || !formData.password || !formData.confirmPassword) {
       setError('Please fill in all fields');
       setLoading(false);
@@ -69,19 +83,29 @@ const RegisterPage = ({ onRegister, onSwitchToLogin }) => {
     }
 
     try {
+      console.log('Attempting registration with email:', formData.email);
       const response = await authAPI.register(
         formData.username,
         formData.email,
         formData.password
       );
       
+      console.log('Registration successful:', response);
+      
       // Store token and user data
       localStorage.setItem('access_token', response.access_token);
       localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('auth_method', 'email');
       
-      onRegister(response.user);
+      // Call parent handler
+      onRegister(response.user, 'email');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Registration failed. Please try again.');
+      console.error('Registration error:', err);
+      if (err.response) {
+        console.error('Response data:', err.response.data);
+        console.error('Response status:', err.response.status);
+      }
+      setError(err.response?.data?.detail || err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -95,7 +119,12 @@ const RegisterPage = ({ onRegister, onSwitchToLogin }) => {
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
-            {error}
+            <div className="flex items-start">
+              <svg className="w-5 h-5 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <span>{error}</span>
+            </div>
           </div>
         )}
 
@@ -121,7 +150,7 @@ const RegisterPage = ({ onRegister, onSwitchToLogin }) => {
           <div className="flex-1 h-px bg-gray-300"></div>
         </div>
 
-        <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
             <input
@@ -131,6 +160,7 @@ const RegisterPage = ({ onRegister, onSwitchToLogin }) => {
               disabled={loading}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none disabled:bg-gray-100"
               placeholder="Choose a username"
+              autoComplete="username"
             />
           </div>
 
@@ -143,6 +173,7 @@ const RegisterPage = ({ onRegister, onSwitchToLogin }) => {
               disabled={loading}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none disabled:bg-gray-100"
               placeholder="Enter your email"
+              autoComplete="email"
             />
           </div>
 
@@ -154,7 +185,8 @@ const RegisterPage = ({ onRegister, onSwitchToLogin }) => {
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               disabled={loading}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none disabled:bg-gray-100"
-              placeholder="Create a password"
+              placeholder="Create a password (min. 6 characters)"
+              autoComplete="new-password"
             />
           </div>
 
@@ -164,21 +196,21 @@ const RegisterPage = ({ onRegister, onSwitchToLogin }) => {
               type="password"
               value={formData.confirmPassword}
               onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-              onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
               disabled={loading}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none disabled:bg-gray-100"
               placeholder="Confirm your password"
+              autoComplete="new-password"
             />
           </div>
 
           <button
-            onClick={handleSubmit}
+            type="submit"
             disabled={loading}
             className="w-full bg-purple-600 text-white rounded-lg py-3 font-medium hover:bg-purple-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Creating Account...' : 'Create Account'}
           </button>
-        </div>
+        </form>
 
         <p className="text-center text-sm text-gray-600 mt-6">
           Already have an account?{' '}

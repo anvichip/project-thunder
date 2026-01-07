@@ -1,8 +1,10 @@
-// src/components/MainDashboard.jsx
+// src/components/MainDashboard.jsx - Updated with new routes
 import { useState, useEffect } from 'react';
 import { profileAPI } from '../services/api';
 import EditProfileModal from './EditProfileModal';
 import EditRolesModal from './EditRolesModal';
+import ResumeTemplateUpload from './ResumeTemplateUpload';
+import ResumeEditor from './ResumeEditor';
 
 const MainDashboard = ({ userData, profileData, onLogout }) => {
   const [activeTab, setActiveTab] = useState('profile');
@@ -59,6 +61,8 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
 
   const navItems = [
     { id: 'profile', label: 'Profile', icon: '👤' },
+    { id: 'templates', label: 'Resume Templates', icon: '📄' },
+    { id: 'editor', label: 'Resume Editor', icon: '✏️' },
     { id: 'jobs', label: 'Job Matches', icon: '💼' },
     { id: 'applications', label: 'Applications', icon: '📋' },
     { id: 'analytics', label: 'Analytics', icon: '📊' },
@@ -66,7 +70,7 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
   ];
 
   const renderContent = () => {
-    if (loading) {
+    if (loading && activeTab === 'profile') {
       return (
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -83,6 +87,10 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
             onEditRoles={() => setShowEditRoles(true)}
           />
         );
+      case 'templates':
+        return <ResumeTemplateUpload userData={userData} />;
+      case 'editor':
+        return <ResumeEditor userData={userData} />;
       case 'jobs':
         return <JobMatchesView />;
       case 'applications':
@@ -177,7 +185,7 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto p-4 md:p-8">
+      <main className={activeTab === 'editor' ? '' : 'max-w-7xl mx-auto p-4 md:p-8'}>
         {renderContent()}
       </main>
 
@@ -201,7 +209,7 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
   );
 };
 
-// Profile View Component
+// Profile View Component (unchanged)
 const ProfileView = ({ profileData, onEditProfile, onEditRoles }) => {
   if (!profileData) {
     return (
@@ -300,7 +308,6 @@ const ProfileView = ({ profileData, onEditProfile, onEditRoles }) => {
   );
 };
 
-// Info Card Component
 const InfoCard = ({ label, value, icon, link }) => {
   return (
     <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-5 rounded-xl border border-gray-200">
@@ -324,7 +331,6 @@ const InfoCard = ({ label, value, icon, link }) => {
   );
 };
 
-// Placeholder Components
 const JobMatchesView = () => (
   <div className="bg-white rounded-2xl shadow-lg p-8">
     <h2 className="text-2xl font-bold text-gray-800 mb-4">Job Matches</h2>

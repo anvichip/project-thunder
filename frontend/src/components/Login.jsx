@@ -1,4 +1,4 @@
-// Login.jsx
+// src/components/Login.jsx - FIXED
 import { useState } from 'react';
 import { authAPI } from '../services/api';
 import { app } from "../firebase";
@@ -17,10 +17,13 @@ const LoginPage = ({ onLogin, onSwitchToRegister }) => {
     setLoading(true);
 
     try {
+      console.log('Starting Google sign-in...');
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
+      console.log('Google sign-in successful:', user.email);
 
       // Send Firebase user data to backend
+      console.log('Sending to backend...');
       const response = await authAPI.firebaseAuth(
         user.uid,
         user.email,
@@ -28,20 +31,30 @@ const LoginPage = ({ onLogin, onSwitchToRegister }) => {
         user.photoURL
       );
 
+      console.log('Backend response:', response);
+
       // Store token and user data
       localStorage.setItem('access_token', response.access_token);
       localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('auth_method', 'google');
 
-      onLogin(response.user);
+      // Call parent handler
+      onLogin(response.user, 'google');
     } catch (err) {
       console.error('Google sign-in error:', err);
-      setError(err.response?.data?.detail || 'Google sign-in failed. Please try again.');
+      if (err.response) {
+        console.error('Response data:', err.response.data);
+        console.error('Response status:', err.response.status);
+      }
+      setError(err.response?.data?.detail || err.message || 'Google sign-in failed. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (e) => {
+    if (e) e.preventDefault();
+    
     setError('');
     setLoading(true);
 
@@ -52,15 +65,24 @@ const LoginPage = ({ onLogin, onSwitchToRegister }) => {
     }
 
     try {
+      console.log('Attempting login with email:', formData.email);
       const response = await authAPI.login(formData.email, formData.password);
+      console.log('Login successful:', response);
       
       // Store token and user data
       localStorage.setItem('access_token', response.access_token);
       localStorage.setItem('user', JSON.stringify(response.user));
+      localStorage.setItem('auth_method', 'email');
       
-      onLogin(response.user);
+      // Call parent handler
+      onLogin(response.user, 'email');
     } catch (err) {
-      setError(err.response?.data?.detail || 'Login failed. Please try again.');
+      console.error('Login error:', err);
+      if (err.response) {
+        console.error('Response data:', err.response.data);
+        console.error('Response status:', err.response.status);
+      }
+      setError(err.response?.data?.detail || err.message || 'Login failed. Please check your credentials.');
     } finally {
       setLoading(false);
     }
@@ -74,7 +96,12 @@ const LoginPage = ({ onLogin, onSwitchToRegister }) => {
         
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-4">
-            {error}
+            <div className="flex items-start">
+              <svg className="w-5 h-5 mr-2 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+              <span>{error}</span>
+            </div>
           </div>
         )}
 
@@ -100,17 +127,17 @@ const LoginPage = ({ onLogin, onSwitchToRegister }) => {
           <div className="flex-1 h-px bg-gray-300"></div>
         </div>
 
-        <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <input
               type="email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
               disabled={loading}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100"
               placeholder="Enter your email"
+              autoComplete="email"
             />
           </div>
 
@@ -120,21 +147,21 @@ const LoginPage = ({ onLogin, onSwitchToRegister }) => {
               type="password"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              onKeyPress={(e) => e.key === 'Enter' && handleSubmit()}
               disabled={loading}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none disabled:bg-gray-100"
               placeholder="Enter your password"
+              autoComplete="current-password"
             />
           </div>
 
           <button
-            onClick={handleSubmit}
+            type="submit"
             disabled={loading}
             className="w-full bg-indigo-600 text-white rounded-lg py-3 font-medium hover:bg-indigo-700 transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
-        </div>
+        </form>
 
         <p className="text-center text-sm text-gray-600 mt-6">
           Don't have an account?{' '}
