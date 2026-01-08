@@ -13,6 +13,7 @@ import os
 import traceback
 from dotenv import load_dotenv
 from bson import ObjectId
+from typing import Dict, Any
 
 # Import custom modules
 from resume_parser import parse_resume
@@ -853,6 +854,283 @@ async def get_saved_templates(email: str):
         traceback.print_exc()
         # Return empty list instead of error
         return []
+
+@app.put("/api/user-profile/{email}")
+async def update_user_profile(email: str, request: Dict[str, Any]):
+    """Update user profile data"""
+    try:
+        print(f"Updating profile for: {email}")
+        
+        profile_data = request.get('profileData')
+        if not profile_data:
+            raise HTTPException(status_code=400, detail="Profile data is required")
+        
+        result = await profiles_collection.update_one(
+            {"email": email},
+            {
+                "$set": {
+                    "profileData": profile_data,
+                    "updatedAt": datetime.utcnow()
+                }
+            }
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        
+        print(f"Profile updated successfully: {email}")
+        return {"message": "Profile updated successfully", "email": email}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Update profile error: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.put("/api/user-profile/{email}/roles")
+async def update_user_roles(email: str, request: Dict[str, Any]):
+    """Update user selected roles"""
+    try:
+        print(f"Updating roles for: {email}")
+        
+        selected_roles = request.get('selectedRoles')
+        if not selected_roles:
+            raise HTTPException(status_code=400, detail="Selected roles are required")
+        
+        result = await profiles_collection.update_one(
+            {"email": email},
+            {
+                "$set": {
+                    "selectedRoles": selected_roles,
+                    "updatedAt": datetime.utcnow()
+                }
+            }
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Profile not found")
+        
+        print(f"Roles updated successfully: {email}")
+        return {"message": "Roles updated successfully", "email": email}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Update roles error: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+    
+resumes_collection = db.resumes
+resume_links_collection = db.resume_links
+
+import secrets
+import string
+
+def generate_short_code(length=8):
+    """Generate a random short code for resume links"""
+    chars = string.ascii_letters + string.digits
+    return ''.join(secrets.choice(chars) for _ in range(length))
+
+
+@app.get("/api/latex-templates/{email}")
+async def get_latex_templates(email: str):
+    """Get all LaTeX templates/resumes for a user"""
+    try:
+        print(f"Fetching LaTeX templates for: {email}")
+        resumes = await resumes_collection.find({"email": email}).sort("createdAt", -1).to_list(100)
+        
+        result = []
+        for resume in resumes:
+            result.append({
+                "id": str(resume["_id"]),
+                "name": resume.get("name", "Untitled Resume"),
+                "content": resume.get("content", ""),
+                "pdfUrl": resume.get("pdfUrl"),
+                "createdAt": resume.get("createdAt").isoformat() if resume.get("createdAt") else datetime.utcnow().isoformat(),
+                "updatedAt": resume.get("updatedAt").isoformat() if resume.get("updatedAt") else datetime.utcnow().isoformat()
+            })
+        
+        print(f"Found {len(result)} templates")
+        return result
+    except Exception as e:
+        print(f"Get LaTeX templates error: {e}")
+        traceback.print_exc()
+        return []
+
+@app.post("/api/save-latex-resume")
+async def save_latex_resume(request: Dict[str, Any]):
+    """Save a compiled LaTeX resume"""
+    try:
+        email = request.get('email')
+        name = request.get('name')
+        content = request.get('content')
+        pdf_url = request.get('pdfUrl')
+        
+        if not email or not content:
+            raise HTTPException(status_code=400, detail="Email and content are required")
+        
+        resume_doc = {
+            "email": email,
+            "name": name or f"Resume {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+            "content": content,
+            "pdfUrl": pdf_url,
+            "createdAt": datetime.utcnow(),
+            "updatedAt": datetime.utcnow()
+        }
+        
+        result = await resumes_collection.insert_one(resume_doc)
+        
+        print(f"LaTeX resume saved: {result.inserted_id}")
+        return {
+            "message": "Resume saved successfully",
+            "id": str(result.inserted_id)
+        }
+    except Exception as e:
+        print(f"Save LaTeX resume error: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/generate-resume-link")
+async def generate_resume_link(request: Dict[str, Any]):
+    """Generate a shareable link for a resume"""
+    try:
+        resume_id = request.get('resumeId')
+        email = request.get('email')
+        
+        if not resume_id or not email:
+            raise HTTPException(status_code=400, detail="Resume ID and email are required")
+        
+        # Check if resume exists
+        resume = await resumes_collection.find_one({"_id": ObjectId(resume_id), "email": email})
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        # Generate short code
+        short_code = generate_short_code()
+        
+        # Check if code already exists
+        while await resume_links_collection.find_one({"shortCode": short_code}):
+            short_code = generate_short_code()
+        
+        # Create link document
+        link_doc = {
+            "resumeId": ObjectId(resume_id),
+            "email": email,
+            "shortCode": short_code,
+            "createdAt": datetime.utcnow(),
+            "views": 0
+        }
+        
+        await resume_links_collection.insert_one(link_doc)
+        
+        # Generate full URL
+        base_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+        share_url = f"{base_url}/view/{short_code}"
+        
+        print(f"Generated resume link: {share_url}")
+        return {
+            "shortCode": short_code,
+            "shareUrl": share_url
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Generate resume link error: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/resume-link/{short_code}")
+async def get_resume_by_link(short_code: str):
+    """Get resume by short code (public endpoint)"""
+    try:
+        print(f"Fetching resume for short code: {short_code}")
+        
+        # Find link
+        link = await resume_links_collection.find_one({"shortCode": short_code})
+        if not link:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        # Increment view count
+        await resume_links_collection.update_one(
+            {"shortCode": short_code},
+            {"$inc": {"views": 1}}
+        )
+        
+        # Get resume
+        resume = await resumes_collection.find_one({"_id": link["resumeId"]})
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        print(f"Resume found for short code: {short_code}")
+        return {
+            "name": resume.get("name", "Resume"),
+            "pdfUrl": resume.get("pdfUrl"),
+            "createdAt": resume.get("createdAt").isoformat() if resume.get("createdAt") else None
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Get resume by link error: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/resume-details/{resume_id}")
+async def get_resume_details(resume_id: str, email: str):
+    """Get detailed information about a resume"""
+    try:
+        print(f"Fetching resume details: {resume_id}")
+        
+        resume = await resumes_collection.find_one({"_id": ObjectId(resume_id), "email": email})
+        if not resume:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        # Get share link if exists
+        link = await resume_links_collection.find_one({"resumeId": ObjectId(resume_id)})
+        share_info = None
+        if link:
+            base_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
+            share_info = {
+                "shortCode": link["shortCode"],
+                "shareUrl": f"{base_url}/view/{link['shortCode']}",
+                "views": link.get("views", 0)
+            }
+        
+        return {
+            "id": str(resume["_id"]),
+            "name": resume.get("name", "Resume"),
+            "content": resume.get("content", ""),
+            "pdfUrl": resume.get("pdfUrl"),
+            "createdAt": resume.get("createdAt").isoformat() if resume.get("createdAt") else None,
+            "updatedAt": resume.get("updatedAt").isoformat() if resume.get("updatedAt") else None,
+            "shareInfo": share_info
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Get resume details error: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/resume/{resume_id}")
+async def delete_resume(resume_id: str, email: str):
+    """Delete a resume"""
+    try:
+        print(f"Deleting resume: {resume_id}")
+        
+        result = await resumes_collection.delete_one({"_id": ObjectId(resume_id), "email": email})
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Resume not found")
+        
+        # Delete associated links
+        await resume_links_collection.delete_many({"resumeId": ObjectId(resume_id)})
+        
+        print(f"Resume deleted: {resume_id}")
+        return {"message": "Resume deleted successfully"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Delete resume error: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

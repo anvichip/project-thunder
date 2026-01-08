@@ -1,21 +1,27 @@
-// src/components/ResumeEditor.jsx
+// src/components/ResumeEditor.jsx - Updated
 import { useState, useEffect, useRef } from 'react';
 import { resumeAPI } from '../services/api';
 
 const ResumeEditor = ({ userData }) => {
   const [content, setContent] = useState('');
   const [compiling, setCompiling] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [autoCompile, setAutoCompile] = useState(false);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [error, setError] = useState('');
   const [savedDrafts, setSavedDrafts] = useState([]);
+  const [latexTemplates, setLatexTemplates] = useState([]);
   const [currentDraft, setCurrentDraft] = useState(null);
+  const [currentResume, setCurrentResume] = useState(null);
   const [fontSize, setFontSize] = useState(14);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [resumeName, setResumeName] = useState('');
   const editorRef = useRef(null);
   const compileTimeoutRef = useRef(null);
 
   useEffect(() => {
     loadDrafts();
+    loadLatexTemplates();
     loadDefaultTemplate();
   }, []);
 
@@ -74,6 +80,15 @@ Your experience details here
     }
   };
 
+  const loadLatexTemplates = async () => {
+    try {
+      const templates = await resumeAPI.getLatexTemplates(userData.email);
+      setLatexTemplates(templates);
+    } catch (error) {
+      console.error('Error loading LaTeX templates:', error);
+    }
+  };
+
   const handleCompile = async () => {
     setCompiling(true);
     setError('');
@@ -102,14 +117,57 @@ Your experience details here
     }
   };
 
+  const handleSaveAsResume = () => {
+    if (!pdfUrl) {
+      alert('Please compile the document first');
+      return;
+    }
+    setShowSaveModal(true);
+  };
+
+  const handleConfirmSave = async () => {
+    if (!resumeName.trim()) {
+      alert('Please enter a name for your resume');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await resumeAPI.saveLatexResume(
+        userData.email,
+        resumeName,
+        content,
+        pdfUrl
+      );
+      
+      setShowSaveModal(false);
+      setResumeName('');
+      await loadLatexTemplates();
+      alert('Resume saved successfully!');
+    } catch (error) {
+      console.error('Save resume error:', error);
+      alert('Failed to save resume');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleLoadDraft = async (draftId) => {
     try {
       const draft = await resumeAPI.getDraft(draftId);
       setContent(draft.content);
       setCurrentDraft(draft);
+      setPdfUrl(null);
     } catch (error) {
       alert('Failed to load draft');
     }
+  };
+
+  const handleLoadLatexTemplate = (template) => {
+    setContent(template.content);
+    setCurrentResume(template);
+    setPdfUrl(template.pdfUrl);
+    setCurrentDraft(null);
   };
 
   const handleDownloadPDF = async () => {
@@ -158,12 +216,12 @@ Your experience details here
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       {/* Toolbar */}
-      <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between gap-4 flex-wrap">
+      <div className="bg-white border-b border-gray-200 p-4 flex items-center justify-between gap-4 flex-wrap flex-shrink-0">
         <div className="flex items-center gap-2">
           <h1 className="text-xl font-bold text-gray-800">Resume Editor</h1>
-          {currentDraft && (
+          {(currentDraft || currentResume) && (
             <span className="text-sm text-gray-500">
-              ({currentDraft.name})
+              ({currentDraft?.name || currentResume?.name})
             </span>
           )}
         </div>
@@ -248,9 +306,9 @@ Your experience details here
           {/* Action Buttons */}
           <button
             onClick={handleSaveDraft}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+            className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 transition text-sm font-medium"
           >
-            Save Draft
+            💾 Save Draft
           </button>
           
           <button
@@ -258,55 +316,99 @@ Your experience details here
             disabled={compiling}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 transition text-sm font-medium"
           >
-            {compiling ? 'Compiling...' : 'Compile'}
+            {compiling ? '⏳ Compiling...' : '▶️ Compile'}
           </button>
 
           {pdfUrl && (
-            <button
-              onClick={handleDownloadPDF}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium"
-            >
-              Download PDF
-            </button>
+            <>
+              <button
+                onClick={handleSaveAsResume}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium"
+              >
+                ✅ Save as Resume
+              </button>
+              <button
+                onClick={handleDownloadPDF}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium"
+              >
+                ⬇️ Download
+              </button>
+            </>
           )}
         </div>
       </div>
 
       {/* Error Display */}
       {error && (
-        <div className="bg-red-50 border-b border-red-200 px-4 py-2">
+        <div className="bg-red-50 border-b border-red-200 px-4 py-2 flex-shrink-0">
           <p className="text-red-700 text-sm">{error}</p>
         </div>
       )}
 
       {/* Main Editor Area */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Sidebar - Saved Drafts */}
-        <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto">
+        {/* Sidebar - Saved Items */}
+        <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto flex-shrink-0">
           <div className="p-4">
-            <h2 className="font-semibold text-gray-800 mb-3">Saved Drafts</h2>
-            {savedDrafts.length === 0 ? (
-              <p className="text-sm text-gray-500">No saved drafts</p>
-            ) : (
-              <div className="space-y-2">
-                {savedDrafts.map((draft) => (
-                  <button
-                    key={draft.id}
-                    onClick={() => handleLoadDraft(draft.id)}
-                    className={`w-full text-left px-3 py-2 rounded-lg transition ${
-                      currentDraft?.id === draft.id
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'hover:bg-gray-100'
-                    }`}
-                  >
-                    <p className="text-sm font-medium truncate">{draft.name}</p>
-                    <p className="text-xs text-gray-500">
-                      {new Date(draft.updatedAt).toLocaleDateString()}
-                    </p>
-                  </button>
-                ))}
-              </div>
-            )}
+            {/* Drafts Section */}
+            <div className="mb-6">
+              <h2 className="font-semibold text-gray-800 mb-3 flex items-center">
+                <span className="mr-2">📝</span>
+                Drafts
+              </h2>
+              {savedDrafts.length === 0 ? (
+                <p className="text-sm text-gray-500">No drafts</p>
+              ) : (
+                <div className="space-y-2">
+                  {savedDrafts.map((draft) => (
+                    <button
+                      key={draft.id}
+                      onClick={() => handleLoadDraft(draft.id)}
+                      className={`w-full text-left px-3 py-2 rounded-lg transition ${
+                        currentDraft?.id === draft.id
+                          ? 'bg-yellow-100 text-yellow-700 border border-yellow-300'
+                          : 'hover:bg-gray-100'
+                      }`}
+                    >
+                      <p className="text-sm font-medium truncate">{draft.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(draft.updatedAt).toLocaleDateString()}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* LaTeX Resumes Section */}
+            <div>
+              <h2 className="font-semibold text-gray-800 mb-3 flex items-center">
+                <span className="mr-2">📄</span>
+                My Resumes
+              </h2>
+              {latexTemplates.length === 0 ? (
+                <p className="text-sm text-gray-500">No saved resumes</p>
+              ) : (
+                <div className="space-y-2">
+                  {latexTemplates.map((template) => (
+                    <button
+                      key={template.id}
+                      onClick={() => handleLoadLatexTemplate(template)}
+                      className={`w-full text-left px-3 py-2 rounded-lg transition ${
+                        currentResume?.id === template.id
+                          ? 'bg-blue-100 text-blue-700 border border-blue-300'
+                          : 'hover:bg-gray-100'
+                      }`}
+                    >
+                      <p className="text-sm font-medium truncate">{template.name}</p>
+                      <p className="text-xs text-gray-500">
+                        {new Date(template.updatedAt).toLocaleDateString()}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -345,6 +447,46 @@ Your experience details here
           </div>
         </div>
       </div>
+
+      {/* Save Resume Modal */}
+      {showSaveModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8">
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Save Resume</h2>
+            <p className="text-gray-600 mb-6">
+              Give your resume a name to save it to your collection
+            </p>
+            
+            <input
+              type="text"
+              value={resumeName}
+              onChange={(e) => setResumeName(e.target.value)}
+              placeholder="e.g., Software Engineer Resume"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none mb-6"
+              autoFocus
+            />
+
+            <div className="flex gap-4">
+              <button
+                onClick={() => {
+                  setShowSaveModal(false);
+                  setResumeName('');
+                }}
+                className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirmSave}
+                disabled={saving || !resumeName.trim()}
+                className="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition font-medium"
+              >
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
