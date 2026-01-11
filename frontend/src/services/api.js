@@ -315,6 +315,78 @@ export const resumeAPI = {
       throw error;
     }
   },
+  getLatexTemplates: async (email) => {
+    try {
+      console.log(`Fetching LaTeX templates for ${email}`);
+      const response = await api.get(`/api/latex-templates/${email}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get LaTeX templates failed:', error);
+      return [];
+    }
+  },
+
+  saveLatexResume: async (email, name, content, pdfUrl) => {
+    try {
+      const response = await api.post('/api/save-latex-resume', {
+        email,
+        name,
+        content,
+        pdfUrl,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Save LaTeX resume failed:', error);
+      throw error;
+    }
+  },
+
+  generateResumeLink: async (resumeId, email) => {
+    try {
+      const response = await api.post('/api/generate-resume-link', {
+        resumeId,
+        email,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Generate resume link failed:', error);
+      throw error;
+    }
+  },
+
+  getResumeByLink: async (shortCode) => {
+    try {
+      const response = await api.get(`/api/resume-link/${shortCode}`);
+      return response.data;
+    } catch (error) {
+      console.error('Get resume by link failed:', error);
+      throw error;
+    }
+  },
+
+  getResumeDetails: async (resumeId, email) => {
+    try {
+      const response = await api.get(`/api/resume-details/${resumeId}`, {
+        params: { email },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Get resume details failed:', error);
+      throw error;
+    }
+  },
+
+  deleteResume: async (resumeId, email) => {
+    try {
+      const response = await api.delete(`/api/resume/${resumeId}`, {
+        params: { email },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Delete resume failed:', error);
+      throw error;
+    }
+  },
 };
 
 export const profileAPI = {

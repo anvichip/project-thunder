@@ -1,10 +1,11 @@
-// src/components/MainDashboard.jsx - Updated with new routes
+// src/components/MainDashboard.jsx - Fixed Full Screen
 import { useState, useEffect } from 'react';
 import { profileAPI } from '../services/api';
 import EditProfileModal from './EditProfileModal';
 import EditRolesModal from './EditRolesModal';
 import ResumeTemplateUpload from './ResumeTemplateUpload';
 import ResumeEditor from './ResumeEditor';
+import MyResumes from './MyResumes';
 
 const MainDashboard = ({ userData, profileData, onLogout }) => {
   const [activeTab, setActiveTab] = useState('profile');
@@ -60,13 +61,14 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
   };
 
   const navItems = [
-    { id: 'profile', label: 'Profile', icon: '👤' },
-    { id: 'templates', label: 'Resume Templates', icon: '📄' },
-    { id: 'editor', label: 'Resume Editor', icon: '✏️' },
-    { id: 'jobs', label: 'Job Matches', icon: '💼' },
-    { id: 'applications', label: 'Applications', icon: '📋' },
-    { id: 'analytics', label: 'Analytics', icon: '📊' },
-    { id: 'settings', label: 'Settings', icon: '⚙️' }
+    { id: 'profile', label: 'Profile' },
+    { id: 'templates', label: 'Resume Templates' },
+    { id: 'editor', label: 'Resume Editor'},
+    { id: 'my-resumes', label: 'My Resumes' },
+    // { id: 'jobs', label: 'Job Matches' },
+    // { id: 'applications', label: 'Applications' },
+    { id: 'analytics', label: 'Analytics'},
+    { id: 'settings', label: 'Settings'}
   ];
 
   const renderContent = () => {
@@ -91,6 +93,8 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
         return <ResumeTemplateUpload userData={userData} />;
       case 'editor':
         return <ResumeEditor userData={userData} />;
+      case 'my-resumes':
+        return <MyResumes userData={userData} />;
       case 'jobs':
         return <JobMatchesView />;
       case 'applications':
@@ -105,38 +109,18 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Top Navbar */}
-      <nav className="bg-white shadow-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Top Navbar - Fixed */}
+      <nav className="bg-white shadow-md sticky top-0 z-50 flex-shrink-0">
+        <div className="w-full px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-8">
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <div className="flex items-center gap-4 min-w-0 flex-shrink-0">
+              <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent whitespace-nowrap">
                 Resume Unlocked
               </h1>
-              
-              {/* Desktop Navigation */}
-              <div className="hidden md:flex items-center gap-2">
-                {navItems.map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => setActiveTab(item.id)}
-                    className={`
-                      flex items-center gap-2 px-4 py-2 rounded-lg transition duration-200
-                      ${activeTab === item.id
-                        ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
-                        : 'text-gray-700 hover:bg-gray-100'
-                      }
-                    `}
-                  >
-                    <span className="text-lg">{item.icon}</span>
-                    <span className="font-medium text-sm">{item.label}</span>
-                  </button>
-                ))}
-              </div>
             </div>
             
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
               <div className="hidden md:flex items-center gap-3">
                 {userData?.picture && (
                   <img
@@ -146,37 +130,55 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
                   />
                 )}
                 <div className="text-right">
-                  <p className="text-sm font-medium text-gray-800">
+                  <p className="text-sm font-medium text-gray-800 truncate max-w-[150px]">
                     {fullProfile?.fullName || userData?.username || userData?.name || userData?.email}
                   </p>
-                  <p className="text-xs text-gray-500">{fullProfile?.email || userData?.email}</p>
+                  <p className="text-xs text-gray-500 truncate max-w-[150px]">{fullProfile?.email || userData?.email}</p>
                 </div>
               </div>
               
               <button
                 onClick={onLogout}
-                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition duration-200 font-medium text-sm"
+                className="bg-red-500 text-white px-3 md:px-4 py-2 rounded-lg hover:bg-red-600 transition duration-200 font-medium text-sm whitespace-nowrap"
               >
                 Logout
               </button>
             </div>
           </div>
 
-          {/* Mobile Navigation */}
-          <div className="md:hidden flex overflow-x-auto gap-2 py-3 border-t">
+          {/* Desktop Navigation - Scrollable */}
+          <div className="hidden md:flex items-center gap-2 pb-3 overflow-x-auto scrollbar-hide">
             {navItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
                 className={`
-                  flex items-center gap-2 px-4 py-2 rounded-lg transition duration-200 whitespace-nowrap
+                  flex items-center gap-2 px-4 py-2 rounded-lg transition duration-200 whitespace-nowrap flex-shrink-0
                   ${activeTab === item.id
                     ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
                     : 'text-gray-700 hover:bg-gray-100'
                   }
                 `}
               >
-                <span>{item.icon}</span>
+                <span className="font-medium text-sm">{item.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Mobile Navigation - Scrollable */}
+          <div className="md:hidden flex overflow-x-auto gap-2 py-3 border-t scrollbar-hide">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`
+                  flex items-center gap-2 px-4 py-2 rounded-lg transition duration-200 whitespace-nowrap flex-shrink-0
+                  ${activeTab === item.id
+                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white'
+                    : 'text-gray-700 hover:bg-gray-100'
+                  }
+                `}
+              >
                 <span className="text-sm font-medium">{item.label}</span>
               </button>
             ))}
@@ -184,9 +186,11 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
         </div>
       </nav>
 
-      {/* Main Content */}
-      <main className={activeTab === 'editor' ? '' : 'max-w-7xl mx-auto p-4 md:p-8'}>
-        {renderContent()}
+      {/* Main Content - Flex Grow */}
+      <main className={`flex-1 ${activeTab === 'editor' || activeTab === 'my-resumes' ? '' : 'w-full px-4 md:px-8 py-4 md:py-8'}`}>
+        <div className={activeTab === 'editor' || activeTab === 'my-resumes' ? 'h-full' : 'max-w-7xl mx-auto'}>
+          {renderContent()}
+        </div>
       </main>
 
       {/* Edit Modals */}
@@ -205,11 +209,21 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
           onClose={() => setShowEditRoles(false)}
         />
       )}
+
+      <style jsx>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 };
 
-// Profile View Component (unchanged)
+// Profile View Component
 const ProfileView = ({ profileData, onEditProfile, onEditRoles }) => {
   if (!profileData) {
     return (

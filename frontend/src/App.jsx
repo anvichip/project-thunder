@@ -1,5 +1,6 @@
-// App.jsx - Enhanced with Auth Context
+// App.jsx - Updated with Public View Route
 import { useState, useEffect, createContext, useContext } from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginPage from './components/Login';
 import RegisterPage from './components/Register';
 import ResumeUpload from './components/ResumeUpload';
@@ -7,8 +8,8 @@ import VerificationPage from './components/VerificationPage';
 import RoleSelection from './components/RoleSelection';
 import Congratulations from './components/Congratulations';
 import MainDashboard from './components/MainDashboard';
+import PublicResumeView from './components/PublicResumeView';
 import { profileAPI } from './services/api';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 // Auth Context
 export const AuthContext = createContext(null);
@@ -24,7 +25,7 @@ export const useAuth = () => {
 export default function App() {
   const [currentStep, setCurrentStep] = useState('login');
   const [userData, setUserData] = useState(null);
-  const [authMethod, setAuthMethod] = useState(null); // 'google' or 'email'
+  const [authMethod, setAuthMethod] = useState(null);
   const [resumeData, setResumeData] = useState(null);
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -164,6 +165,10 @@ export default function App() {
     <AuthContext.Provider value={authContextValue}>
       <Router>
         <Routes>
+          {/* Public resume view route */}
+          <Route path="/view/:shortCode" element={<PublicResumeView />} />
+          
+          {/* Main app routes */}
           <Route 
             path="/*" 
             element={
