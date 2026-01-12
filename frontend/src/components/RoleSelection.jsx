@@ -7,56 +7,49 @@ const RoleSelection = ({ userData, authMethod, onComplete, onLogout }) => {
   const [selectedRoles, setSelectedRoles] = useState([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const [showMore, setShowMore] = useState(false);
 
-  const roles = [
-    {
-      id: 'sde',
-      title: 'Software Development Engineer',
-      color: 'from-blue-500 to-blue-600'
-    },
-    {
-      id: 'mle',
-      title: 'Machine Learning Engineer',
-      color: 'from-purple-500 to-purple-600'
-    },
-    {
-      id: 'ds',
-      title: 'Data Scientist',
-      color: 'from-green-500 to-green-600'
-    },
-    {
-      id: 'de',
-      title: 'Data Engineer',
-      color: 'from-orange-500 to-orange-600'
-    },
-    {
-      id: 'fe',
-      title: 'Frontend Engineer',
-      color: 'from-pink-500 to-pink-600'
-    },
-    {
-      id: 'be',
-      title: 'Backend Engineer',
-      color: 'from-indigo-500 to-indigo-600'
-    },
-    {
-      id: 'devops',
-      title: 'DevOps Engineer',
-      color: 'from-red-500 to-red-600'
-    },
-    {
-      id: 'pm',
-      title: 'Product Manager',
-      color: 'from-teal-500 to-teal-600'
-    }
+  const allRoles = [
+    'Software Engineer',
+    'Backend Developer',
+    'Frontend Developer',
+    'Full Stack Developer',
+    'Data Scientist',
+    'Machine Learning Engineer',
+    'AI Engineer',
+    'Data Analyst',
+    'Big Data Engineer',
+    'DevOps Engineer',
+    'Site Reliability Engineer (SRE)',
+    'Cloud Engineer',
+    'Platform Engineer',
+    'Embedded Systems Engineer',
+    'Mobile App Developer (Android/iOS)',
+    'Game Developer',
+    'Computer Vision Engineer',
+    'NLP Engineer',
+    'MLOps Engineer',
+    'Database Administrator (DBA)',
+    'Systems Engineer',
+    'Network Engineer',
+    'Cybersecurity Engineer',
+    'Application Security Engineer',
+    'QA / Automation Test Engineer',
+    'Performance Test Engineer',
+    'Solutions Architect',
+    'Technical Product Manager',
+    'Business Intelligence (BI) Engineer',
+    'Research Engineer'
   ];
 
-  const toggleRole = (roleId) => {
+  const visibleRoles = showMore ? allRoles : allRoles.slice(0, 12);
+
+  const toggleRole = (role) => {
     setSelectedRoles(prev => {
-      if (prev.includes(roleId)) {
-        return prev.filter(id => id !== roleId);
+      if (prev.includes(role)) {
+        return prev.filter(r => r !== role);
       }
-      return [...prev, roleId];
+      return [...prev, role];
     });
   };
 
@@ -70,19 +63,14 @@ const RoleSelection = ({ userData, authMethod, onComplete, onLogout }) => {
     setError('');
 
     try {
-      const selectedRoleTitles = selectedRoles.map(roleId => {
-        const role = roles.find(r => r.id === roleId);
-        return role ? role.title : roleId;
-      });
-
       await profileAPI.saveProfile(
-        userData.email,
-        userData,
-        selectedRoleTitles
+        userData?.email || 'user@example.com',
+        userData || {},
+        selectedRoles
       );
 
       setSaving(false);
-      onComplete();
+      if (onComplete) onComplete();
     } catch (error) {
       console.error('Error saving profile:', error);
       setError(error.response?.data?.detail || 'Failed to save profile. Please try again.');
@@ -92,10 +80,14 @@ const RoleSelection = ({ userData, authMethod, onComplete, onLogout }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-purple-100">
-      <AuthHeader userData={userData} authMethod={authMethod} onLogout={onLogout} />
+      <AuthHeader 
+        userData={userData || { email: 'user@example.com' }} 
+        authMethod={authMethod} 
+        onLogout={onLogout || (() => console.log('Logout clicked'))} 
+      />
       
       <div className="py-8 px-4">
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="text-center mb-8">
               <h2 className="text-3xl font-bold text-gray-800 mb-2">Select Your Roles</h2>
@@ -110,66 +102,41 @@ const RoleSelection = ({ userData, authMethod, onComplete, onLogout }) => {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              {roles.map((role) => {
-                const isSelected = selectedRoles.includes(role.id);
+            <div className="flex flex-wrap gap-3 mb-6">
+              {visibleRoles.map((role) => {
+                const isSelected = selectedRoles.includes(role);
                 return (
-                  <div
-                    key={role.id}
-                    onClick={() => toggleRole(role.id)}
+                  <button
+                    key={role}
+                    onClick={() => toggleRole(role)}
                     className={`
-                      relative cursor-pointer rounded-xl p-6 transition-all duration-200 transform hover:scale-105
+                      px-4 py-2 rounded-full text-sm font-medium transition-all duration-200
                       ${isSelected 
-                        ? `bg-gradient-to-br ${role.color} text-white shadow-lg` 
-                        : 'bg-gray-50 border-2 border-gray-200 hover:border-gray-300'
+                        ? 'bg-blue-600 text-white shadow-md' 
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }
                     `}
                   >
+                    {role}
                     {isSelected && (
-                      <div className="absolute top-3 right-3">
-                        <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                        </svg>
-                      </div>
+                      <span className="ml-2 inline-block">+</span>
                     )}
-                    
-                    <div className="text-4xl mb-3">{role.icon}</div>
-                    <h3 className={`font-bold text-lg mb-2 ${isSelected ? 'text-white' : 'text-gray-800'}`}>
-                      {role.title}
-                    </h3>
-                  </div>
+                    {!isSelected && (
+                      <span className="ml-2 inline-block text-gray-400">+</span>
+                    )}
+                  </button>
                 );
               })}
             </div>
 
-            {selectedRoles.length > 0 && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-                <h3 className="font-semibold text-blue-800 mb-2">Selected Roles:</h3>
-                <div className="flex flex-wrap gap-2">
-                  {selectedRoles.map(roleId => {
-                    const role = roles.find(r => r.id === roleId);
-                    return (
-                      <span
-                        key={roleId}
-                        className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-full text-sm font-medium"
-                      >
-                        <span>{role.icon}</span>
-                        <span>{role.title}</span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleRole(roleId);
-                          }}
-                          className="ml-1 hover:bg-blue-700 rounded-full p-0.5"
-                        >
-                          <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                          </svg>
-                        </button>
-                      </span>
-                    );
-                  })}
-                </div>
+            {!showMore && allRoles.length > 12 && (
+              <div className="text-center mb-6">
+                <button
+                  onClick={() => setShowMore(true)}
+                  className="text-blue-600 hover:text-blue-700 font-medium text-sm"
+                >
+                  view more
+                </button>
               </div>
             )}
 
@@ -184,7 +151,7 @@ const RoleSelection = ({ userData, authMethod, onComplete, onLogout }) => {
                 }
               `}
             >
-              {saving ? 'Saving Profile...' : `Continue with ${selectedRoles.length} Role${selectedRoles.length !== 1 ? 's' : ''}`}
+              {saving ? 'Saving...' : `Continue with ${selectedRoles.length} role${selectedRoles.length !== 1 ? 's' : ''}`}
             </button>
           </div>
         </div>
