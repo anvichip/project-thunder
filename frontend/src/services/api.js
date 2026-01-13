@@ -1,16 +1,14 @@
-// src/services/api.js - FIXED with better error handling
+// src/services/api.js - FIXED VERSION with Better Error Handling
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
-console.log('API Base URL:', API_BASE_URL);
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 second timeout
+  timeout: 60000, // Increased timeout for resume parsing
 });
 
 // Request interceptor
@@ -20,11 +18,11 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
-    console.log('Making request to:', config.url);
+    console.log('API Request:', config.method?.toUpperCase(), config.url);
     return config;
   },
   (error) => {
-    console.error('Request error:', error);
+    console.error('Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -32,33 +30,25 @@ api.interceptors.request.use(
 // Response interceptor
 api.interceptors.response.use(
   (response) => {
-    console.log('Response from:', response.config.url, '- Status:', response.status);
+    console.log('API Response:', response.status, response.config.url);
     return response;
   },
   (error) => {
-    console.error('Response error:', error);
-    
-    if (error.response) {
-      console.error('Error data:', error.response.data);
-      console.error('Error status:', error.response.status);
-      
-      if (error.response.status === 401) {
-        console.log('Unauthorized - clearing auth data');
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('auth_method');
-        // Don't redirect if we're already on login page
-        if (!window.location.pathname.includes('login')) {
-          window.location.href = '/';
-        }
+    console.error('API Error:', {
+      url: error.config?.url,
+      method: error.config?.method,
+      status: error.response?.status,
+      data: error.response?.data
+    });
+
+    if (error.response?.status === 401) {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('user');
+      localStorage.removeItem('auth_method');
+      if (!window.location.pathname.includes('login')) {
+        window.location.href = '/';
       }
-    } else if (error.request) {
-      console.error('No response received:', error.request);
-      console.error('Is backend running on', API_BASE_URL, '?');
-    } else {
-      console.error('Error setting up request:', error.message);
     }
-    
     return Promise.reject(error);
   }
 );
@@ -66,64 +56,42 @@ api.interceptors.response.use(
 export const authAPI = {
   register: async (username, email, password) => {
     try {
-      console.log('Registering user:', email);
       const response = await api.post('/api/auth/register', {
         username,
         email,
         password,
       });
-      console.log('Registration response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Registration failed:', error);
+      console.error('Register API error:', error);
       throw error;
     }
   },
 
   login: async (email, password) => {
     try {
-      console.log('Logging in user:', email);
       const response = await api.post('/api/auth/login', {
         email,
         password,
       });
-      console.log('Login response:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error('Login API error:', error);
       throw error;
     }
   },
 
-  firebaseAuth: async (uid, email, name, photoURL) => {
+  auth0Login: async (authData) => {
     try {
-      console.log('Firebase auth for user:', email);
-      const response = await api.post('/api/auth/firebase', {
-        uid,
-        email,
-        name,
-        photoURL,
-      });
-      console.log('Firebase auth response:', response.data);
+      const response = await api.post('/api/auth/auth0-login', authData);
       return response.data;
     } catch (error) {
-      console.error('Firebase auth failed:', error);
-      throw error;
-    }
-  },
-
-  getMe: async () => {
-    try {
-      const response = await api.get('/api/auth/me');
-      return response.data;
-    } catch (error) {
-      console.error('Get me failed:', error);
+      console.error('Auth0 login API error:', error);
       throw error;
     }
   },
 
   logout: () => {
-    console.log('Logging out user');
     localStorage.removeItem('access_token');
     localStorage.removeItem('user');
     localStorage.removeItem('auth_method');
@@ -137,313 +105,156 @@ export const resumeAPI = {
       formData.append('file', file);
       formData.append('userId', userId);
 
+      console.log('Uploading resume:', {
+        fileName: file.name,
+        fileSize: file.size,
+        fileType: file.type,
+        userId
+      });
+
       const response = await api.post('/api/upload-resume', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        timeout: 120000, // 2 minutes for parsing
       });
+
+      console.log('Resume upload response:', response.data);
+
+      // Validate response structure
+      if (!response.data) {
+        throw new Error('Empty response from server');
+      }
+
+      if (!response.data.extractedData) {
+        console.error('Invalid response structure:', response.data);
+        throw new Error('Server returned invalid data structure');
+      }
+
+      if (!response.data.extractedData.sections || !Array.isArray(response.data.extractedData.sections)) {
+        console.error('Invalid sections data:', response.data.extractedData);
+        throw new Error('Resume sections not properly extracted');
+      }
+
       return response.data;
     } catch (error) {
-      console.error('Resume upload failed:', error);
-      throw error;
-    }
-  },
+      console.error('Resume upload error:', error);
+      
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('Upload timed out. Please try again with a smaller file.');
+      }
+      
+      if (error.response?.status === 413) {
+        throw new Error('File is too large. Please upload a smaller file.');
+      }
 
-  // LaTeX Editor APIs
-  compileLatex: async (content, email) => {
-    try {
-      const response = await api.post('/api/compile-latex', {
-        content,
-        email,
-      });
-      return response.data;
-    } catch (error) {
-      console.error('LaTeX compilation failed:', error);
-      throw error;
-    }
-  },
+      if (error.response?.data?.detail) {
+        throw new Error(error.response.data.detail);
+      }
 
-  getDefaultLatexTemplate: async () => {
-    try {
-      const response = await api.get('/api/default-latex-template');
-      return response.data;
-    } catch (error) {
-      console.error('Get default template failed:', error);
-      throw error;
-    }
-  },
-
-  saveDraft: async (email, name, content) => {
-    try {
-      const response = await api.post('/api/save-draft', {
-        email,
-        name,
-        content,
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Save draft failed:', error);
-      throw error;
-    }
-  },
-
-  getResumeDrafts: async (email) => {
-    try {
-      const response = await api.get(`/api/drafts/${email}`);
-      return response.data;
-    } catch (error) {
-      console.error('Get drafts failed:', error);
-      throw error;
-    }
-  },
-
-  getDraft: async (draftId) => {
-    try {
-      const response = await api.get(`/api/draft/${draftId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Get draft failed:', error);
-      throw error;
-    }
-  },
-
-  deleteDraft: async (draftId) => {
-    try {
-      const response = await api.delete(`/api/draft/${draftId}`);
-      return response.data;
-    } catch (error) {
-      console.error('Delete draft failed:', error);
-      throw error;
-    }
-  },
-
-  generateStandardResume: async (email, format = 'pdf') => {
-    try {
-      console.log(`Generating standard resume for ${email} in ${format} format`);
-      const response = await api.post('/api/generate-standard-resume', 
-        { email, format },
-        { responseType: 'blob' }
-      );
-      return response;
-    } catch (error) {
-      console.error('Standard resume generation failed:', error);
-      throw error;
-    }
-  },
-
-  previewStandardResume: async (email) => {
-    try {
-      console.log(`Previewing standard resume for ${email}`);
-      const response = await api.post('/api/preview-standard-resume', 
-        { email },
-        { responseType: 'blob' }
-      );
-      return response;
-    } catch (error) {
-      console.error('Standard resume preview failed:', error);
-      throw error;
-    }
-  },
-
-  generateResume: async (formData) => {
-    try {
-      console.log('Generating resume from custom template');
-      const response = await api.post('/api/generate-resume', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        responseType: 'blob',
-      });
-      return response;
-    } catch (error) {
-      console.error('Resume generation failed:', error);
-      throw error;
-    }
-  },
-
-  previewResume: async (formData) => {
-    try {
-      console.log('Previewing custom resume');
-      const response = await api.post('/api/preview-resume', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        responseType: 'blob',
-      });
-      return response;
-    } catch (error) {
-      console.error('Resume preview failed:', error);
-      throw error;
-    }
-  },
-
-  getSavedTemplates: async (email) => {
-    try {
-      console.log(`Fetching saved templates for ${email}`);
-      const response = await api.get(`/api/templates/${email}`);
-      return response.data;
-    } catch (error) {
-      console.error('Get templates failed:', error);
-      // Return empty array instead of throwing
-      return [];
-    }
-  },
-
-  generateFromSavedTemplate: async (email, templateId, format) => {
-    try {
-      console.log(`Generating from saved template ${templateId}`);
-      const response = await api.post('/api/generate-from-template', {
-        email,
-        templateId,
-        format,
-      }, {
-        responseType: 'blob',
-      });
-      return response;
-    } catch (error) {
-      console.error('Generate from template failed:', error);
-      throw error;
-    }
-  },
-
-  getProfile: async (email) => {
-    try {
-      const response = await api.get(`/api/user-profile/${email}`);
-      return response.data;
-    } catch (error) {
-      console.error('Get profile failed:', error);
-      throw error;
-    }
-  },
-  getLatexTemplates: async (email) => {
-    try {
-      console.log(`Fetching LaTeX templates for ${email}`);
-      const response = await api.get(`/api/latex-templates/${email}`);
-      return response.data;
-    } catch (error) {
-      console.error('Get LaTeX templates failed:', error);
-      return [];
-    }
-  },
-
-  saveLatexResume: async (email, name, content, pdfUrl) => {
-    try {
-      const response = await api.post('/api/save-latex-resume', {
-        email,
-        name,
-        content,
-        pdfUrl,
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Save LaTeX resume failed:', error);
-      throw error;
-    }
-  },
-
-  generateResumeLink: async (resumeId, email) => {
-    try {
-      const response = await api.post('/api/generate-resume-link', {
-        resumeId,
-        email,
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Generate resume link failed:', error);
-      throw error;
-    }
-  },
-
-  getResumeByLink: async (shortCode) => {
-    try {
-      const response = await api.get(`/api/resume-link/${shortCode}`);
-      return response.data;
-    } catch (error) {
-      console.error('Get resume by link failed:', error);
-      throw error;
-    }
-  },
-
-  getResumeDetails: async (resumeId, email) => {
-    try {
-      const response = await api.get(`/api/resume-details/${resumeId}`, {
-        params: { email },
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Get resume details failed:', error);
-      throw error;
-    }
-  },
-
-  deleteResume: async (resumeId, email) => {
-    try {
-      const response = await api.delete(`/api/resume/${resumeId}`, {
-        params: { email },
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Delete resume failed:', error);
       throw error;
     }
   },
 };
 
 export const profileAPI = {
-  saveProfile: async (email, profileData, selectedRoles) => {
+  saveProfile: async (email, resumeData, selectedRoles) => {
     try {
+      console.log('Saving profile:', {
+        email,
+        hasResumeData: !!resumeData,
+        sectionsCount: resumeData?.sections?.length || 0,
+        rolesCount: selectedRoles?.length || 0
+      });
+
+      // Validate input
+      if (!email) {
+        throw new Error('Email is required');
+      }
+
+      if (!resumeData || !resumeData.sections || resumeData.sections.length === 0) {
+        throw new Error('Resume data is required and must contain sections');
+      }
+
+      if (!selectedRoles || selectedRoles.length === 0) {
+        throw new Error('At least one role must be selected');
+      }
+
       const response = await api.post('/api/save-user-profile', {
         email,
-        profileData,
+        resumeData,
         selectedRoles,
       });
+
+      console.log('Profile saved successfully:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Save profile failed:', error);
+      console.error('Save profile error:', error);
       throw error;
     }
   },
 
   getProfile: async (email) => {
     try {
+      console.log('Fetching profile for:', email);
+      
+      if (!email) {
+        throw new Error('Email is required');
+      }
+
       const response = await api.get(`/api/user-profile/${email}`);
+      console.log('Profile fetched:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Get profile failed:', error);
+      console.error('Get profile error:', error);
       throw error;
     }
   },
 
-  updateProfile: async (email, profileData) => {
+  updateProfile: async (email, resumeData) => {
     try {
+      console.log('Updating profile:', { email, hasResumeData: !!resumeData });
+
+      if (!email) {
+        throw new Error('Email is required');
+      }
+
+      if (!resumeData) {
+        throw new Error('Resume data is required');
+      }
+
       const response = await api.put(`/api/user-profile/${email}`, {
-        profileData,
+        resumeData,
       });
+
+      console.log('Profile updated:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Update profile failed:', error);
+      console.error('Update profile error:', error);
       throw error;
     }
   },
 
   updateRoles: async (email, selectedRoles) => {
     try {
+      console.log('Updating roles:', { email, rolesCount: selectedRoles?.length });
+
+      if (!email) {
+        throw new Error('Email is required');
+      }
+
+      if (!selectedRoles || selectedRoles.length === 0) {
+        throw new Error('At least one role must be selected');
+      }
+
       const response = await api.put(`/api/user-profile/${email}/roles`, {
         selectedRoles,
       });
-      return response.data;
-    } catch (error) {
-      console.error('Update roles failed:', error);
-      throw error;
-    }
-  },
 
-  deleteProfile: async (email) => {
-    try {
-      const response = await api.delete(`/api/user-profile/${email}`);
+      console.log('Roles updated:', response.data);
       return response.data;
     } catch (error) {
-      console.error('Delete profile failed:', error);
+      console.error('Update roles error:', error);
       throw error;
     }
   },

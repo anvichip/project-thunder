@@ -1,59 +1,39 @@
-// src/components/VerificationPage.jsx - Updated with AuthHeader
+// src/components/VerificationPage.jsx - Dynamic Section Verification
 import { useState } from 'react';
 import AuthHeader from './AuthHeader';
 
 const VerificationPage = ({ extractedData, userData, authMethod, onConfirm, onBack, onLogout }) => {
-  const [formData, setFormData] = useState(extractedData);
-  const [errors, setErrors] = useState({});
+  const [sections, setSections] = useState(extractedData.sections || []);
 
-  const validateField = (name, value) => {
-    let error = '';
-    
-    if (name === 'email' && value && !/\S+@\S+\.\S+/.test(value)) {
-      error = 'Invalid email format';
-    }
-    
-    if (name === 'phone' && value && !/^\+?[\d\s-()]+$/.test(value)) {
-      error = 'Invalid phone format';
-    }
-    
-    if ((name === 'linkedin' || name === 'github') && value && !/^https?:\/\/.+/.test(value)) {
-      error = 'URL must start with http:// or https://';
-    }
-
-    return error;
+  const handleSectionChange = (sectionIndex, subsectionIndex, dataIndex, value) => {
+    const updatedSections = [...sections];
+    updatedSections[sectionIndex].subsections[subsectionIndex].data[dataIndex] = value;
+    setSections(updatedSections);
   };
 
-  const handleChange = (field, value) => {
-    setFormData({ ...formData, [field]: value });
-    
-    const error = validateField(field, value);
-    setErrors({ ...errors, [field]: error });
+  const handleSubsectionTitleChange = (sectionIndex, subsectionIndex, value) => {
+    const updatedSections = [...sections];
+    updatedSections[sectionIndex].subsections[subsectionIndex].title = value;
+    setSections(updatedSections);
   };
 
   const handleSubmit = () => {
-    const newErrors = {};
-    let hasErrors = false;
-
-    Object.keys(formData).forEach(key => {
-      const error = validateField(key, formData[key]);
-      if (error) {
-        newErrors[key] = error;
-        hasErrors = true;
-      }
-    });
-
-    if (!formData.fullName || !formData.email || !formData.phone) {
-      alert('Please fill in all required fields');
+    if (sections.length === 0) {
+      alert('No data to verify');
       return;
     }
 
-    if (hasErrors) {
-      setErrors(newErrors);
+    // Validate that critical sections have data
+    const hasData = sections.some(section => 
+      section.subsections.some(sub => sub.data.length > 0)
+    );
+
+    if (!hasData) {
+      alert('Please ensure at least one section has data');
       return;
     }
 
-    onConfirm(formData);
+    onConfirm({ sections });
   };
 
   return (
@@ -61,7 +41,7 @@ const VerificationPage = ({ extractedData, userData, authMethod, onConfirm, onBa
       <AuthHeader userData={userData} authMethod={authMethod} onLogout={onLogout} />
       
       <div className="py-8 px-4">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-5xl mx-auto">
           <div className="bg-white rounded-2xl shadow-xl p-8">
             <div className="flex items-center justify-between mb-6">
               <div>
@@ -72,7 +52,7 @@ const VerificationPage = ({ extractedData, userData, authMethod, onConfirm, onBa
               </div>
               <button
                 onClick={onBack}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition duration-200"
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 transition duration-200 font-medium"
               >
                 ← Back
               </button>
@@ -92,164 +72,78 @@ const VerificationPage = ({ extractedData, userData, authMethod, onConfirm, onBa
               </div>
             </div>
 
-            <div className="space-y-5">
-              <div className="bg-blue-50 p-6 rounded-xl">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                  </svg>
-                  Personal Information
-                </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Full Name <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.fullName}
-                      onChange={(e) => handleChange('fullName', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-                    />
-                  </div>
+            {/* Dynamic Sections Display */}
+            <div className="space-y-6">
+              {sections.map((section, sectionIndex) => (
+                <div key={sectionIndex} className="bg-gradient-to-br from-purple-50 to-blue-50 rounded-2xl shadow-md p-6 border-2 border-purple-200">
+                  <h3 className="text-xl font-bold text-purple-800 mb-4 flex items-center">
+                    <span className="mr-2">
+                      {section.section_name.toLowerCase().includes('contact') ? '📧' :
+                       section.section_name.toLowerCase().includes('education') ? '🎓' :
+                       section.section_name.toLowerCase().includes('experience') || 
+                       section.section_name.toLowerCase().includes('work') ? '💼' :
+                       section.section_name.toLowerCase().includes('skill') ? '🛠️' :
+                       section.section_name.toLowerCase().includes('project') ? '🚀' :
+                       section.section_name.toLowerCase().includes('achievement') ? '🏆' :
+                       section.section_name.toLowerCase().includes('certification') ? '📜' :
+                       section.section_name.toLowerCase().includes('publication') ? '📚' : '📋'}
+                    </span>
+                    {section.section_name}
+                  </h3>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Email <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => handleChange('email', e.target.value)}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white ${
-                        errors.email ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    />
-                    {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
-                  </div>
+                  {section.subsections.map((subsection, subsectionIndex) => (
+                    <div key={subsectionIndex} className="bg-white rounded-xl p-5 mb-4 border border-gray-200">
+                      {/* Subsection Title */}
+                      {subsection.title && (
+                        <div className="mb-3">
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Title
+                          </label>
+                          <input
+                            type="text"
+                            value={subsection.title}
+                            onChange={(e) => handleSubsectionTitleChange(sectionIndex, subsectionIndex, e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none bg-white"
+                          />
+                        </div>
+                      )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Phone <span className="text-red-500">*</span>
-                    </label>
-                    <input
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => handleChange('phone', e.target.value)}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white ${
-                        errors.phone ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    />
-                    {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      LinkedIn Profile
-                    </label>
-                    <input
-                      type="url"
-                      value={formData.linkedin}
-                      onChange={(e) => {
-                        let value = e.target.value.trim();
-                        if (value && !/^https?:\/\//i.test(value)) {
-                          value = `https://${value}`;
-                        }
-                        handleChange('linkedin', value);
-                      }}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white ${
-                        errors.linkedin ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    />
-                    {errors.linkedin && <p className="text-red-500 text-xs mt-1">{errors.linkedin}</p>}
-                  </div>
+                      {/* Data Items */}
+                      <div className="space-y-2">
+                        {subsection.data.length > 0 && (
+                          <label className="block text-sm font-medium text-gray-700 mb-1">
+                            Details
+                          </label>
+                        )}
+                        {subsection.data.map((dataItem, dataIndex) => (
+                          <textarea
+                            key={dataIndex}
+                            value={dataItem}
+                            onChange={(e) => handleSectionChange(sectionIndex, subsectionIndex, dataIndex, e.target.value)}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none bg-white"
+                            rows="2"
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
+              ))}
+            </div>
 
-              <div className="bg-purple-50 p-6 rounded-xl">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
-                  <svg className="w-5 h-5 mr-2 text-purple-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M6 6V5a3 3 0 013-3h2a3 3 0 013 3v1h2a2 2 0 012 2v3.57A22.952 22.952 0 0110 13a22.95 22.95 0 01-8-1.43V8a2 2 0 012-2h2zm2-1a1 1 0 011-1h2a1 1 0 011 1v1H8V5zm1 5a1 1 0 011-1h.01a1 1 0 110 2H10a1 1 0 01-1-1z" clipRule="evenodd" />
-                    <path d="M2 13.692V16a2 2 0 002 2h12a2 2 0 002-2v-2.308A24.974 24.974 0 0110 15c-2.796 0-5.487-.46-8-1.308z" />
-                  </svg>
-                  Professional Details
-                </h3>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      GitHub Profile
-                    </label>
-                    <input
-                      type="url"
-                      value={formData.github}
-                      onChange={(e) => {
-                        let value = e.target.value.trim();
-                        if (value && !/^https?:\/\//i.test(value)) {
-                          value = `https://${value}`;
-                        }
-                        handleChange('github', value);
-                      }}
-                      className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white ${
-                        errors.github ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    />
-                    {errors.github && <p className="text-red-500 text-xs mt-1">{errors.github}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Skills
-                    </label>
-                    <textarea
-                      value={formData.skills}
-                      onChange={(e) => handleChange('skills', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-                      rows="3"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Work Experience
-                    </label>
-                    <textarea
-                      value={formData.experience}
-                      onChange={(e) => handleChange('experience', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-                      rows="4"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Education
-                    </label>
-                    <textarea
-                      value={formData.education}
-                      onChange={(e) => handleChange('education', e.target.value)}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none bg-white"
-                      rows="3"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex gap-4 pt-4">
-                <button
-                  onClick={onBack}
-                  className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition duration-200 font-medium"
-                >
-                  Go Back
-                </button>
-                <button
-                  onClick={handleSubmit}
-                  className="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition duration-200 font-medium"
-                >
-                  Confirm & Continue
-                </button>
-              </div>
+            <div className="flex gap-4 pt-6 mt-6 border-t border-gray-200">
+              <button
+                onClick={onBack}
+                className="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition duration-200 font-medium"
+              >
+                Go Back
+              </button>
+              <button
+                onClick={handleSubmit}
+                className="flex-1 bg-gradient-to-r from-green-600 to-blue-600 text-white py-3 rounded-lg hover:from-green-700 hover:to-blue-700 transition duration-200 font-medium"
+              >
+                Confirm & Continue
+              </button>
             </div>
           </div>
         </div>

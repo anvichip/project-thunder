@@ -1,18 +1,14 @@
-// App.jsx - Updated with Auth0
+// App.jsx - FIXED VERSION with Better Data Flow
 import { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
 import LoginPage from './components/Login';
-import RegisterPage from './components/Register';
 import ResumeUpload from './components/ResumeUpload';
-import VerificationPage from './components/VerificationPage';
 import RoleSelection from './components/RoleSelection';
 import Congratulations from './components/Congratulations';
 import MainDashboard from './components/MainDashboard';
-import PublicResumeView from './components/PublicResumeView';
 import { profileAPI, authAPI } from './services/api';
 
-// Auth Context
 export const AuthContext = createContext(null);
 
 export const useAuthContext = () => {
@@ -33,79 +29,78 @@ export default function App() {
 
   const { isAuthenticated, user, isLoading, logout: auth0Logout } = useAuth0();
 
+  // Check for existing session and profile completion
   useEffect(() => {
     const checkExistingSession = async () => {
-      // Wait for Auth0 to finish loading
-      if (isLoading) {
-        return;
-      }
+      if (isLoading) return;
 
-      // If authenticated with Auth0
-      if (isAuthenticated && user) {
-        try {
-          // Send Auth0 user data to backend
-          const response = await authAPI.auth0Login(
-            user.sub,
-            user.email,
-            user.name || user.email.split('@')[0],
-            user.picture
-          );
+      try {
+        // If authenticated with Auth0
+        if (isAuthenticated && user) {
+          console.log('Auth0 user detected:', user);
+          
+          const response = await authAPI.auth0Login({
+            uid: user.sub,
+            email: user.email,
+            name: user.name || user.email.split('@')[0],
+            picture: user.picture,
+            auth_provider: user.sub.startsWith('google') ? 'google' : 
+                          user.sub.startsWith('linkedin') ? 'linkedin' : 'auth0'
+          });
 
-          // Store token and user data
           localStorage.setItem('access_token', response.access_token);
           localStorage.setItem('user', JSON.stringify(response.user));
-          localStorage.setItem('auth_method', 'auth0');
+          localStorage.setItem('auth_method', response.user.auth_provider);
 
           setUserData(response.user);
-          setAuthMethod('auth0');
+          setAuthMethod(response.user.auth_provider);
 
-          // Check if profile exists
-          const profile = await profileAPI.getProfile(response.user.email);
-          
-          if (profile && profile.profileData && profile.selectedRoles) {
-            setProfileData({
-              ...profile.profileData,
-              selectedRoles: profile.selectedRoles
-            });
+          // Check if profile is completed
+          if (response.user.profile_completed) {
+            const profile = await profileAPI.getProfile(response.user.email);
+            setProfileData(profile);
             setCurrentStep('dashboard');
           } else {
             setCurrentStep('resume');
           }
-        } catch (error) {
-          console.error('Profile check failed:', error);
-          setCurrentStep('resume');
-        }
-      } else {
-        // Check for existing session in localStorage
-        const token = localStorage.getItem('access_token');
-        const storedUser = localStorage.getItem('user');
-        const storedAuthMethod = localStorage.getItem('auth_method');
+        } else {
+          // Check for existing token
+          const token = localStorage.getItem('access_token');
+          const storedUser = localStorage.getItem('user');
+          const storedAuthMethod = localStorage.getItem('auth_method');
 
-        if (token && storedUser) {
-          try {
+          if (token && storedUser) {
             const user = JSON.parse(storedUser);
             setUserData(user);
             setAuthMethod(storedAuthMethod || 'email');
 
-            const profile = await profileAPI.getProfile(user.email);
-            
-            if (profile && profile.profileData && profile.selectedRoles) {
-              setProfileData({
-                ...profile.profileData,
-                selectedRoles: profile.selectedRoles
-              });
-              setCurrentStep('dashboard');
-            } else {
+            // Verify token is still valid and check profile
+            try {
+              const profile = await profileAPI.getProfile(user.email);
+              setProfileData(profile);
+              
+              // Update profile_completed flag if needed
+              if (profile.resumeData && profile.selectedRoles) {
+                setCurrentStep('dashboard');
+              } else {
+                setCurrentStep('resume');
+              }
+            } catch (error) {
+              console.log('No profile found, starting onboarding');
               setCurrentStep('resume');
             }
-          } catch (error) {
-            console.error('Profile check failed:', error);
-            setCurrentStep('resume');
           }
         }
+      } catch (error) {
+        console.error('Session check error:', error);
+        // Clear invalid session
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('auth_method');
+        setCurrentStep('login');
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     checkExistingSession();
@@ -118,13 +113,10 @@ export default function App() {
     localStorage.setItem('auth_method', method);
 
     try {
-      const profile = await profileAPI.getProfile(data.email);
-      
-      if (profile && profile.profileData && profile.selectedRoles) {
-        setProfileData({
-          ...profile.profileData,
-          selectedRoles: profile.selectedRoles
-        });
+      // Check if profile is completed
+      if (data.profile_completed) {
+        const profile = await profileAPI.getProfile(data.email);
+        setProfileData(profile);
         setCurrentStep('dashboard');
       } else {
         setCurrentStep('resume');
@@ -135,47 +127,42 @@ export default function App() {
     }
   };
 
-  const handleRegister = async (data, method = 'email') => {
-    console.log('User registered:', data);
-    setUserData(data);
-    setAuthMethod(method);
-    localStorage.setItem('auth_method', method);
-
-    try {
-      const profile = await profileAPI.getProfile(data.email);
-      
-      if (profile && profile.profileData && profile.selectedRoles) {
-        setProfileData({
-          ...profile.profileData,
-          selectedRoles: profile.selectedRoles
-        });
-        setCurrentStep('dashboard');
-      } else {
-        setCurrentStep('resume');
-      }
-    } catch (error) {
-      setCurrentStep('resume');
-    }
-  };
-
   const handleResumeNext = (data) => {
-    console.log('Resume data:', data);
-    setResumeData(data);
-    setCurrentStep('verify');
-  };
+    console.log('Resume data received:', data);
+    
+    // Validate data structure
+    if (!data || !data.sections || !Array.isArray(data.sections)) {
+      console.error('Invalid resume data structure:', data);
+      alert('Invalid resume data. Please try uploading again.');
+      return;
+    }
 
-  const handleVerifyConfirm = (data) => {
-    console.log('Verified data:', data);
-    setProfileData(data);
+    // Store resume data with user email
+    const resumeWithEmail = {
+      ...data,
+      email: userData?.email || data.email
+    };
+    
+    setResumeData(resumeWithEmail);
+    console.log('Moving to roles with data:', resumeWithEmail);
     setCurrentStep('roles');
   };
 
   const handleRolesComplete = () => {
-    console.log('Roles selected');
+    console.log('Roles selected, profile completed');
     setCurrentStep('congrats');
   };
 
-  const handleGoToDashboard = () => {
+  const handleGoToDashboard = async () => {
+    try {
+      // Refresh profile data before going to dashboard
+      if (userData?.email) {
+        const profile = await profileAPI.getProfile(userData.email);
+        setProfileData(profile);
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    }
     setCurrentStep('dashboard');
   };
 
@@ -190,7 +177,6 @@ export default function App() {
     setProfileData(null);
     setCurrentStep('login');
 
-    // If logged in with Auth0, logout from Auth0 as well
     if (isAuthenticated) {
       auth0Logout({ returnTo: window.location.origin });
     }
@@ -219,10 +205,6 @@ export default function App() {
     <AuthContext.Provider value={authContextValue}>
       <Router>
         <Routes>
-          {/* Public resume view route */}
-          <Route path="/view/:shortCode" element={<PublicResumeView />} />
-          
-          {/* Main app routes */}
           <Route 
             path="/*" 
             element={
@@ -230,14 +212,6 @@ export default function App() {
                 {currentStep === 'login' && (
                   <LoginPage
                     onLogin={handleLogin}
-                    onSwitchToRegister={() => setCurrentStep('register')}
-                  />
-                )}
-
-                {currentStep === 'register' && (
-                  <RegisterPage
-                    onRegister={handleRegister}
-                    onSwitchToLogin={() => setCurrentStep('login')}
                   />
                 )}
 
@@ -250,20 +224,9 @@ export default function App() {
                   />
                 )}
 
-                {currentStep === 'verify' && (
-                  <VerificationPage
-                    extractedData={resumeData}
-                    userData={userData}
-                    authMethod={authMethod}
-                    onConfirm={handleVerifyConfirm}
-                    onBack={() => setCurrentStep('resume')}
-                    onLogout={handleLogout}
-                  />
-                )}
-
                 {currentStep === 'roles' && (
                   <RoleSelection
-                    userData={{ ...userData, ...profileData }}
+                    userData={resumeData} // Pass resume data directly
                     authMethod={authMethod}
                     onComplete={handleRolesComplete}
                     onLogout={handleLogout}
