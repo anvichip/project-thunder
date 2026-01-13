@@ -1,6 +1,7 @@
-// App.jsx - Updated with Public View Route
+// App.jsx - Updated with Auth0
 import { useState, useEffect, createContext, useContext } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { useAuth0 } from '@auth0/auth0-react';
 import LoginPage from './components/Login';
 import RegisterPage from './components/Register';
 import ResumeUpload from './components/ResumeUpload';
@@ -9,15 +10,15 @@ import RoleSelection from './components/RoleSelection';
 import Congratulations from './components/Congratulations';
 import MainDashboard from './components/MainDashboard';
 import PublicResumeView from './components/PublicResumeView';
-import { profileAPI } from './services/api';
+import { profileAPI, authAPI } from './services/api';
 
 // Auth Context
 export const AuthContext = createContext(null);
 
-export const useAuth = () => {
+export const useAuthContext = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within AuthProvider');
+    throw new Error('useAuthContext must be used within AuthProvider');
   }
   return context;
 };
@@ -30,19 +31,36 @@ export default function App() {
   const [profileData, setProfileData] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const { isAuthenticated, user, isLoading, logout: auth0Logout } = useAuth0();
+
   useEffect(() => {
     const checkExistingSession = async () => {
-      const token = localStorage.getItem('access_token');
-      const storedUser = localStorage.getItem('user');
-      const storedAuthMethod = localStorage.getItem('auth_method');
+      // Wait for Auth0 to finish loading
+      if (isLoading) {
+        return;
+      }
 
-      if (token && storedUser) {
+      // If authenticated with Auth0
+      if (isAuthenticated && user) {
         try {
-          const user = JSON.parse(storedUser);
-          setUserData(user);
-          setAuthMethod(storedAuthMethod || 'email');
+          // Send Auth0 user data to backend
+          const response = await authAPI.auth0Login(
+            user.sub,
+            user.email,
+            user.name || user.email.split('@')[0],
+            user.picture
+          );
 
-          const profile = await profileAPI.getProfile(user.email);
+          // Store token and user data
+          localStorage.setItem('access_token', response.access_token);
+          localStorage.setItem('user', JSON.stringify(response.user));
+          localStorage.setItem('auth_method', 'auth0');
+
+          setUserData(response.user);
+          setAuthMethod('auth0');
+
+          // Check if profile exists
+          const profile = await profileAPI.getProfile(response.user.email);
           
           if (profile && profile.profileData && profile.selectedRoles) {
             setProfileData({
@@ -57,12 +75,41 @@ export default function App() {
           console.error('Profile check failed:', error);
           setCurrentStep('resume');
         }
+      } else {
+        // Check for existing session in localStorage
+        const token = localStorage.getItem('access_token');
+        const storedUser = localStorage.getItem('user');
+        const storedAuthMethod = localStorage.getItem('auth_method');
+
+        if (token && storedUser) {
+          try {
+            const user = JSON.parse(storedUser);
+            setUserData(user);
+            setAuthMethod(storedAuthMethod || 'email');
+
+            const profile = await profileAPI.getProfile(user.email);
+            
+            if (profile && profile.profileData && profile.selectedRoles) {
+              setProfileData({
+                ...profile.profileData,
+                selectedRoles: profile.selectedRoles
+              });
+              setCurrentStep('dashboard');
+            } else {
+              setCurrentStep('resume');
+            }
+          } catch (error) {
+            console.error('Profile check failed:', error);
+            setCurrentStep('resume');
+          }
+        }
       }
+      
       setLoading(false);
     };
 
     checkExistingSession();
-  }, []);
+  }, [isAuthenticated, user, isLoading]);
 
   const handleLogin = async (data, method = 'email') => {
     console.log('User logged in:', data);
@@ -142,9 +189,14 @@ export default function App() {
     setResumeData(null);
     setProfileData(null);
     setCurrentStep('login');
+
+    // If logged in with Auth0, logout from Auth0 as well
+    if (isAuthenticated) {
+      auth0Logout({ returnTo: window.location.origin });
+    }
   };
 
-  if (loading) {
+  if (loading || isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
@@ -158,7 +210,9 @@ export default function App() {
   const authContextValue = {
     userData,
     authMethod,
-    handleLogout
+    handleLogout,
+    isAuthenticated,
+    user
   };
 
   return (
