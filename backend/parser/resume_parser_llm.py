@@ -79,7 +79,7 @@ def main(file_path: str):
         print(e)
         raise
 
-    # # Save validated JSON
+    #TODO: Modification needed according to front-end requirements
     out_path = "resume_parsed.json"
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(validated.model_dump(), f, indent=2, ensure_ascii=False)
@@ -87,5 +87,5 @@ def main(file_path: str):
     print(f"\n🎉 Done. Saved: {out_path}")
 
 
-if __name__ == "__main__":
-    main("/Users/kohli1/thunder/project-thunder/backend/work_resume_sample.docx")
+# if __name__ == "__main__":
+#     main("/Users/kohli1/thunder/project-thunder/backend/work_resume_sample.docx")

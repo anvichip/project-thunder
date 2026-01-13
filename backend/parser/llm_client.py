@@ -2,7 +2,7 @@ import requests
 
 def call_ollama(prompt: str) -> str:
     model = "llama3.1"
-    url = "http://localhost:11434/api/generate" ## To be changed when deployed
+    url = "http://localhost:11434/api/generate" #TODO: Change according to EC2 setup
 
     payload = {
         "model": model,
