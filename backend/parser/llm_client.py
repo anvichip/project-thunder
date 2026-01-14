@@ -1,4 +1,5 @@
 import requests
+from parser.schemas import ResumeJSON
 
 def call_ollama(prompt: str) -> str:
     model = "llama3.1"
@@ -11,9 +12,9 @@ def call_ollama(prompt: str) -> str:
         "options": {
             "temperature": 0
         },
-        "format": "json"
+        "format": ResumeJSON.model_json_schema() #TODO: Fast the parsing
     }
 
-    resp = requests.post(url, json=payload, timeout=120)
+    resp = requests.post(url, json=payload, timeout=300)
     resp.raise_for_status()
     return resp.json()["response"]

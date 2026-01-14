@@ -87,5 +87,5 @@ def main(file_path: str):
     print(f"\n🎉 Done. Saved: {out_path}")
 
 
-# if __name__ == "__main__":
-#     main("/Users/kohli1/thunder/project-thunder/backend/work_resume_sample.docx")
+if __name__ == "__main__":
+    main("/Users/kohli1/thunder/project-thunder/backend/test_resume.pdf")
