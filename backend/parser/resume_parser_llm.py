@@ -5,36 +5,18 @@ from pydantic import ValidationError
 from parser.schemas import ResumeJSON
 from parser.loaders import load_resume
 from parser.utils import extract_json
+import time
 
 def build_prompt(md_text: str) -> str:
     return f"""
-You are a resume parser.
+You are a resume parser. Your job is to parse resumes written in Markdown format into structured JSON according to the following instructions.
 
 TASK:
 Parse the Markdown resume content and return a JSON object.
 
 STRICT REQUIREMENTS:
 - Output MUST be valid JSON only. No extra text.
-- Use this exact structure:
-- Return the JSON object wrapper in ``` backticks.
-
-Example output:
-{{
-  "sections": [
-    {{
-      "section_name": "SECTION TITLE",
-      "subsections": [
-        {{
-          "title": "Subsection title",
-          "data": [
-            "bullet or line 1",
-            "bullet or line 2"
-          ]
-        }}
-      ]
-    }}
-  ]
-}}
+- Extract all sections of resume. Example: Contact Information, Skills, Experience, Education, Projects, Certifications, etc.
 
 RULES:
 - Use Markdown headings (e.g. #, ##) to infer sections and subsections.
@@ -43,8 +25,8 @@ RULES:
     "title": "<section_name>",
     "data": [...]
   }}
-- Preserve all important lines.
-- Do NOT hallucinate.
+- Preserve all information.
+- Include email id and phone number in "Contact Information" section.
 - If content does not fit a section, create section_name="OTHER".
 
 RESUME MARKDOWN:
@@ -80,7 +62,7 @@ def main(file_path: str):
         raise
 
     #TODO: Modification needed according to front-end requirements
-    out_path = "resume_parsed.json"
+    out_path = "resume_parsed_llama3.2_updated.json"
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(validated.model_dump(), f, indent=2, ensure_ascii=False)
 
@@ -88,4 +70,7 @@ def main(file_path: str):
 
 
 if __name__ == "__main__":
-    main("/Users/kohli1/thunder/project-thunder/backend/test_resume.pdf")
+    start_time = time.time()
+    main("/Users/kohli1/thunder/project-thunder/backend/Anvi_Kohli_Resume.pdf")
+    end_time = time.time()
+    print(f"\n⏱️ Total time taken: {end_time - start_time:.2f} seconds")
