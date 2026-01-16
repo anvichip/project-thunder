@@ -71,6 +71,6 @@ def main(file_path: str):
 
 if __name__ == "__main__":
     start_time = time.time()
-    main("/Users/kohli1/thunder/project-thunder/backend/Anvi_Kohli_Resume.pdf")
+    main("/Users/behera5/Desktop/project-thunder/backend/parser/resume.pdf")
     end_time = time.time()
     print(f"\n⏱️ Total time taken: {end_time - start_time:.2f} seconds")

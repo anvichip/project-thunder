@@ -174,9 +174,6 @@ const MyResumes = ({ userData }) => {
               <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
                 Create from Template
               </button>
-              <button className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
-                Use Editor
-              </button>
             </div>
           </div>
         ) : (
