@@ -59,14 +59,35 @@ def make_links_clickable(text):
     return text
 
 
-def pdf_to_html(pdf_path: str, output_html: str, refine_with_llm=True, mode="text-only"):
-    """
-    Convert PDF to HTML.
+def is_bold_font(font_name):
+    """Determine if font is bold based on font name"""
+    if not font_name:
+        return False
     
-    mode options:
-    - "text-only": Only render text with proper formatting - RECOMMENDED
-    - "image-only": Only render the page as an image
-    - "positioned": Render text with absolute positioning (maintains exact layout)
+    font_lower = font_name.lower()
+    bold_indicators = ['bold', 'heavy', 'black', 'semibold', 'demibold', '-b', 'bd']
+    
+    return any(indicator in font_lower for indicator in bold_indicators)
+
+
+def is_italic_font(font_name):
+    """Determine if font is italic based on font name"""
+    if not font_name:
+        return False
+    
+    font_lower = font_name.lower()
+    return 'italic' in font_lower or 'oblique' in font_lower or '-i' in font_lower
+
+
+def pdf_to_html(pdf_path: str, output_html: str, refine_with_llm=False, scale_factor=1.0):
+    """
+    Convert PDF to HTML with exact formatting preservation.
+    
+    Args:
+        pdf_path: Path to input PDF
+        output_html: Path to output HTML file
+        refine_with_llm: Whether to use LLM for refinement
+        scale_factor: Scale factor for output (1.0 = original size)
     """
     if not os.path.exists(pdf_path):
         raise FileNotFoundError(f"❌ PDF not found: {pdf_path}")
@@ -79,45 +100,46 @@ def pdf_to_html(pdf_path: str, output_html: str, refine_with_llm=True, mode="tex
 <head>
 <meta charset="UTF-8">
 <style>
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
 body { 
     margin: 0; 
     padding: 20px; 
-    background: #f0f0f0; 
-    font-family: Arial, sans-serif;
+    background: #e0e0e0; 
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
 }
 .page { 
     position: relative; 
     margin: 20px auto; 
-    padding: 40px;
     background: white;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    max-width: 800px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    page-break-after: always;
 }
-.text-positioned { 
+.word { 
     position: absolute; 
-    white-space: pre;
+    white-space: nowrap;
     color: #000;
-}
-.text-flow {
-    margin-bottom: 8px;
-    line-height: 1.4;
-}
-.text-flow.large {
-    font-size: 18px;
-    font-weight: bold;
-    margin-top: 16px;
-}
-.text-flow.medium {
-    font-size: 14px;
-    font-weight: bold;
-    margin-top: 12px;
 }
 a {
     color: #0066cc;
     text-decoration: underline;
 }
 a:hover {
-    color: #0052a3;
+    color: #004499;
+}
+@media print {
+    body {
+        background: white;
+        padding: 0;
+    }
+    .page {
+        margin: 0;
+        box-shadow: none;
+        page-break-after: always;
+    }
 }
 </style>
 </head>
@@ -130,139 +152,75 @@ a:hover {
         for page_index, page in enumerate(pdf.pages):
             print(f"➡ Extracting page {page_index + 1}…")
 
-            width = int(page.width)
-            height = int(page.height)
+            # Get page dimensions
+            width = float(page.width) * scale_factor
+            height = float(page.height) * scale_factor
 
-            if mode == "text-only":
-                # Extract text with better formatting
-                html_out += f'<div class="page">'
-                
-                # Extract text and try to preserve structure
-                text = page.extract_text()
-                
-                if text:
-                    # Split into lines and process
-                    lines = text.split('\n')
-                    for line in lines:
-                        line = line.strip()
-                        if not line:
-                            continue
-                        
-                        # Escape HTML
-                        line_escaped = html.escape(line)
-                        
-                        # Make links clickable
-                        line_with_links = make_links_clickable(line_escaped)
-                        
-                        # Determine text size based on heuristics
-                        css_class = "text-flow"
-                        if len(line) < 50 and line[0].isupper():
-                            # Likely a header
-                            css_class = "text-flow medium"
-                        
-                        html_out += f'<div class="{css_class}">{line_with_links}</div>\n'
-                else:
-                    html_out += '<p style="color: #999;">No text found on this page</p>'
-                
-                html_out += "</div>"
-                
-            elif mode == "positioned":
-                # Positioned text mode (maintains exact layout)
-                html_out += f'<div class="page" style="width:{width}px; height:{height}px;">'
-                
-                words = page.extract_words()
-                print(f"   🔍 Words extracted: {len(words)}")
+            html_out += f'<div class="page" style="width:{width}px; height:{height}px;">\n'
+            
+            # Extract words with positioning and formatting
+            words = page.extract_words(
+                x_tolerance=3,
+                y_tolerance=3,
+                keep_blank_chars=True,
+                use_text_flow=False,
+                extra_attrs=['fontname', 'size']
+            )
+            
+            print(f"   🔍 Words extracted: {len(words)}")
 
-                if len(words) == 0:
-                    print("   ⚠️ No words found! Falling back to CHAR-LEVEL extraction.")
-                    chars = page.chars
-                    print(f"   🔍 Chars extracted: {len(chars)}")
-
-                    for c in chars:
-                        x = c.get("x") or c.get("x0")
-                        y = c.get("y") or c.get("top")
-                        text = c.get("text", "")
-
-                        if not x or not y or not text:
-                            continue
-
-                        text_escaped = html.escape(text)
-                        text_with_links = make_links_clickable(text_escaped)
-
-                        html_out += f'<div class="text-positioned" style="left:{float(x)}px; top:{float(y)}px; font-size:12px;">{text_with_links}</div>\n'
-                else:
-                    # Group words by line for better link detection
-                    current_line = []
-                    current_y = None
+            if len(words) == 0:
+                html_out += '<p style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); color:#999; font-size:14px;">No text found on this page</p>\n'
+            else:
+                for word in words:
+                    text = word.get('text', '')
+                    x0 = float(word.get('x0', 0)) * scale_factor
+                    top = float(word.get('top', 0)) * scale_factor
+                    font_size = float(word.get('size', 12)) * scale_factor
+                    font_name = word.get('fontname', '')
                     
-                    for w in words:
-                        x = float(w["x0"])
-                        y = float(w["top"])
-                        text = w["text"]
-                        font_size = float(w.get("size", 12))
-                        
-                        # Check if this is a new line (y position changed significantly)
-                        if current_y is None or abs(y - current_y) > 2:
-                            # Process previous line
-                            if current_line:
-                                line_text = " ".join([word["text"] for word in current_line])
-                                line_text_escaped = html.escape(line_text)
-                                line_text_with_links = make_links_clickable(line_text_escaped)
-                                
-                                first_word = current_line[0]
-                                html_out += f'<div class="text-positioned" style="left:{first_word["x"]}px; top:{first_word["y"]}px; font-size:{first_word["size"]}px;">{line_text_with_links}</div>\n'
-                            
-                            # Start new line
-                            current_line = [{"text": text, "x": x, "y": y, "size": font_size}]
-                            current_y = y
-                        else:
-                            # Continue current line
-                            current_line.append({"text": text, "x": x, "y": y, "size": font_size})
+                    # Skip empty words
+                    if not text.strip():
+                        continue
                     
-                    # Process last line
-                    if current_line:
-                        line_text = " ".join([word["text"] for word in current_line])
-                        line_text_escaped = html.escape(line_text)
-                        line_text_with_links = make_links_clickable(line_text_escaped)
-                        
-                        first_word = current_line[0]
-                        html_out += f'<div class="text-positioned" style="left:{first_word["x"]}px; top:{first_word["y"]}px; font-size:{first_word["size"]}px;">{line_text_with_links}</div>\n'
+                    # Escape HTML and make links clickable
+                    text_escaped = html.escape(text)
+                    text_with_links = make_links_clickable(text_escaped)
+                    
+                    # Determine font styling
+                    font_weight = 'bold' if is_bold_font(font_name) else 'normal'
+                    font_style = 'italic' if is_italic_font(font_name) else 'normal'
+                    
+                    # Build inline style
+                    style = f"left:{x0:.2f}px; top:{top:.2f}px; font-size:{font_size:.2f}px; font-weight:{font_weight}; font-style:{font_style};"
+                    
+                    html_out += f'<span class="word" style="{style}">{text_with_links}</span>\n'
 
-                html_out += "</div>"
-                
-            elif mode == "image-only":
-                html_out += f'<div class="page" style="width:{width}px; height:{height}px;">'
-                
-                page_image = page.to_image(resolution=150).original
-                buffer = io.BytesIO()
-                page_image.save(buffer, format="PNG")
-                img_data = base64.b64encode(buffer.getvalue()).decode()
-
-                html_out += f'<img src="data:image/png;base64,{img_data}" style="width:100%; height:auto;">'
-                html_out += "</div>"
+            html_out += "</div>\n"
 
     html_out += "</body></html>"
 
     print("🧩 Extracted HTML successfully.")
 
-    # LLM refinement (optional - may not be needed with better extraction)
+    # LLM refinement (optional - usually not needed)
     if refine_with_llm:
         print("🤖 Calling Ollama to refine HTML…")
         html_out = refine_html_with_llm(html_out)
 
-    # WRITE FILE SAFELY
+    # Write output file
     print("💾 Saving output.html…")
     with open(output_html, "w", encoding="utf-8") as f:
         f.write(html_out)
 
     print("✅ DONE: output.html is generated!")
+    print(f"📍 File saved to: {os.path.abspath(output_html)}")
+
 
 if __name__ == "__main__":
-    # RECOMMENDED: Use "text-only" mode for readable, flowing text with clickable links
-    # pdf_to_html("resume.pdf", "output.html", refine_with_llm=True, mode="text-only")
-    
-    # Alternative: Use "positioned" mode to maintain exact PDF layout with clickable links
-    pdf_to_html("resume.pdf", "output.html", refine_with_llm=True, mode="positioned")
-    
-    # Alternative: Image only
-    # pdf_to_html("resume.pdf", "output.html", refine_with_llm=False, mode="image-only")
+    # Main conversion - preserves exact layout and formatting
+    pdf_to_html(
+        pdf_path="resume.pdf",
+        output_html="output.html",
+        refine_with_llm=True,
+        scale_factor=1.5  # Adjust if needed (e.g., 1.5 for 150% size)
+    )
