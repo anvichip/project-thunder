@@ -145,7 +145,7 @@ cp .env.example .env
 
 Edit `frontend/.env`:
 ```env
-VITE_API_URL=http://localhost:8000
+REACT_BASE_API_URL=http://localhost:8000
 VITE_GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 ```
 
@@ -358,7 +358,7 @@ PORT=8000
 
 ### Frontend (.env)
 ```env
-VITE_API_URL=http://localhost:8000
+REACT_BASE_API_URL=http://localhost:8000
 VITE_GOOGLE_CLIENT_ID=your-client-id
 ```
 

@@ -1,14 +1,14 @@
-// src/services/api.js - FIXED VERSION with Better Error Handling
+// src/services/api.js - COMPLETE FIXED VERSION
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.REACT_BASE_API_URL || 'http://localhost:8000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 60000, // Increased timeout for resume parsing
+  timeout: 60000,
 });
 
 // Request interceptor
@@ -116,12 +116,11 @@ export const resumeAPI = {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 120000, // 2 minutes for parsing
+        timeout: 120000,
       });
 
       console.log('Resume upload response:', response.data);
 
-      // Validate response structure
       if (!response.data) {
         throw new Error('Empty response from server');
       }
@@ -155,6 +154,24 @@ export const resumeAPI = {
       throw error;
     }
   },
+
+  // NEW: Get user's resume
+  getUserResume: async (email) => {
+    try {
+      console.log('Fetching resume for:', email);
+      
+      if (!email) {
+        throw new Error('Email is required');
+      }
+
+      const response = await api.get(`/api/user-resume/${email}`);
+      console.log('Resume fetched:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Get resume error:', error);
+      throw error;
+    }
+  },
 };
 
 export const profileAPI = {
@@ -167,7 +184,6 @@ export const profileAPI = {
         rolesCount: selectedRoles?.length || 0
       });
 
-      // Validate input
       if (!email) {
         throw new Error('Email is required');
       }

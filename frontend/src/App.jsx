@@ -1,6 +1,6 @@
-// App.jsx - FIXED VERSION with Better Data Flow
+// App.jsx - FIXED VERSION with proper route handling
 import { useState, useEffect, createContext, useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
 import LoginPage from './components/Login';
 import ResumeUpload from './components/ResumeUpload';
@@ -205,49 +205,46 @@ export default function App() {
     <AuthContext.Provider value={authContextValue}>
       <Router>
         <Routes>
+          {/* FIXED: Only handle internal routes, not /resume/:id */}
           <Route 
-            path="/*" 
+            path="/" 
             element={
-              <>
-                {currentStep === 'login' && (
-                  <LoginPage
-                    onLogin={handleLogin}
-                  />
-                )}
-
-                {currentStep === 'resume' && (
-                  <ResumeUpload
-                    userData={userData}
-                    authMethod={authMethod}
-                    onNext={handleResumeNext}
-                    onLogout={handleLogout}
-                  />
-                )}
-
-                {currentStep === 'roles' && (
-                  <RoleSelection
-                    userData={resumeData} // Pass resume data directly
-                    authMethod={authMethod}
-                    onComplete={handleRolesComplete}
-                    onLogout={handleLogout}
-                  />
-                )}
-
-                {currentStep === 'congrats' && (
-                  <Congratulations
-                    onGoToDashboard={handleGoToDashboard}
-                  />
-                )}
-
-                {currentStep === 'dashboard' && (
-                  <MainDashboard
-                    userData={userData}
-                    profileData={profileData}
-                    onLogout={handleLogout}
-                  />
-                )}
-              </>
+              currentStep === 'login' ? (
+                <LoginPage onLogin={handleLogin} />
+              ) : currentStep === 'resume' ? (
+                <ResumeUpload
+                  userData={userData}
+                  authMethod={authMethod}
+                  onNext={handleResumeNext}
+                  onLogout={handleLogout}
+                />
+              ) : currentStep === 'roles' ? (
+                <RoleSelection
+                  userData={resumeData}
+                  authMethod={authMethod}
+                  onComplete={handleRolesComplete}
+                  onLogout={handleLogout}
+                />
+              ) : currentStep === 'congrats' ? (
+                <Congratulations
+                  onGoToDashboard={handleGoToDashboard}
+                />
+              ) : currentStep === 'dashboard' ? (
+                <MainDashboard
+                  userData={userData}
+                  profileData={profileData}
+                  onLogout={handleLogout}
+                />
+              ) : (
+                <Navigate to="/" replace />
+              )
             } 
+          />
+          
+          {/* Catch-all route for unknown paths */}
+          <Route 
+            path="*" 
+            element={<Navigate to="/" replace />}
           />
         </Routes>
       </Router>

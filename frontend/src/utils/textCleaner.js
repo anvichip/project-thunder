@@ -1,161 +1,89 @@
-// src/utils/textCleaner.js - Clean and format text content
+// src/utils/textCleaner.js - Clean and format resume text
 
 /**
- * Remove all markdown formatting from text
+ * Clean text by removing common artifacts and normalizing
+ * @param {string} text - Text to clean
+ * @param {string} type - Type of text (section, subsection, bullet)
+ * @returns {string} - Cleaned text
  */
-export const removeMarkdown = (text) => {
-  if (!text) return '';
-  
+export const cleanText = (text, type = 'general') => {
+  if (!text || typeof text !== 'string') {
+    return '';
+  }
+
   let cleaned = text;
-  
-  // Remove bold markdown (**text** or __text__)
-  cleaned = cleaned.replace(/\*\*(.+?)\*\*/g, '$1');
-  cleaned = cleaned.replace(/__(.+?)__/g, '$1');
-  
-  // Remove italic markdown (*text* or _text_)
-  cleaned = cleaned.replace(/\*(.+?)\*/g, '$1');
-  cleaned = cleaned.replace(/_(.+?)_/g, '$1');
-  
-  // Remove strikethrough (~~text~~)
-  cleaned = cleaned.replace(/~~(.+?)~~/g, '$1');
-  
-  // Remove inline code (`text`)
-  cleaned = cleaned.replace(/`(.+?)`/g, '$1');
-  
-  return cleaned.trim();
-};
 
-/**
- * Clean bullet point prefixes
- */
-export const cleanBulletPoint = (text) => {
-  if (!text) return '';
+  // Remove common markdown/formatting artifacts
+  cleaned = cleaned.replace(/```[\w]*\n?/g, ''); // Remove code block markers
+  cleaned = cleaned.replace(/^\s*[-*•]\s*/gm, ''); // Remove bullet points at start
+  cleaned = cleaned.replace(/^\s*\d+\.\s*/gm, ''); // Remove numbered list markers
   
-  let cleaned = text.trim();
+  // Remove excessive whitespace
+  cleaned = cleaned.replace(/\s+/g, ' '); // Multiple spaces to single space
+  cleaned = cleaned.replace(/\n\s*\n/g, '\n'); // Multiple newlines to single
   
-  // Remove common bullet point patterns
-  cleaned = cleaned.replace(/^_-_\s*/g, '');
-  cleaned = cleaned.replace(/^-_\s*/g, '');
-  cleaned = cleaned.replace(/^_-\s*/g, '');
-  cleaned = cleaned.replace(/^--\s*/g, '');
-  cleaned = cleaned.replace(/^-\s*/g, '');
-  cleaned = cleaned.replace(/^•\s*/g, '');
-  cleaned = cleaned.replace(/^\*\s*/g, '');
-  cleaned = cleaned.replace(/^→\s*/g, '');
-  cleaned = cleaned.replace(/^›\s*/g, '');
+  // Remove common noise patterns
+  cleaned = cleaned.replace(/\[.*?\]/g, ''); // Remove [tags]
+  cleaned = cleaned.replace(/<.*?>/g, ''); // Remove <tags>
   
-  return cleaned;
-};
-
-/**
- * Clean section names (remove markdown and extra characters)
- */
-export const cleanSectionName = (text) => {
-  if (!text) return '';
-  
-  let cleaned = text;
-  
-  // Remove markdown
-  cleaned = removeMarkdown(cleaned);
-  
-  // Remove extra asterisks
-  cleaned = cleaned.replace(/\*+/g, '');
-  
-  // Remove brackets and pipes commonly used in parsing
-  cleaned = cleaned.replace(/[\[\]{}()]/g, '');
-  cleaned = cleaned.replace(/\|/g, '');
-  
-  // Clean up spacing
-  cleaned = cleaned.replace(/\s+/g, ' ').trim();
-  
-  return cleaned;
-};
-
-/**
- * Clean subsection titles
- */
-export const cleanSubsectionTitle = (text) => {
-  if (!text) return '';
-  
-  let cleaned = text;
-  
-  // Remove markdown
-  cleaned = removeMarkdown(cleaned);
-  
-  // Remove common prefixes
-  cleaned = cleaned.replace(/^#+\s*/g, ''); // Remove markdown headers
-  
-  return cleaned.trim();
-};
-
-/**
- * Clean contact information text
- */
-export const cleanContactInfo = (text) => {
-  if (!text) return '';
-  
-  let cleaned = text;
-  
-  // Remove markdown
-  cleaned = removeMarkdown(cleaned);
-  
-  // Remove bullet points
-  cleaned = cleanBulletPoint(cleaned);
-  
-  // Remove extra separators and brackets
-  cleaned = cleaned.replace(/\s*\|\s*/g, ' | ');
-  cleaned = cleaned.replace(/\s*\[\s*/g, '');
-  cleaned = cleaned.replace(/\s*\]\s*/g, '');
-  cleaned = cleaned.replace(/\s*\(\s*/g, '(');
-  cleaned = cleaned.replace(/\s*\)\s*/g, ')');
-  
-  // Clean opening brackets/symbols at the start
-  cleaned = cleaned.replace(/^[-\s]*[\[\](){}|]+\s*/g, '');
-  
-  return cleaned.trim();
-};
-
-/**
- * Master clean function - applies all cleaning rules
- */
-export const cleanText = (text, type = 'default') => {
-  if (!text || text === 'NA' || text === 'N/A') return '';
-  
+  // Type-specific cleaning
   switch (type) {
     case 'section':
-      return cleanSectionName(text);
-    
+      // Section names - remove common prefixes
+      cleaned = cleaned.replace(/^(section|chapter|part):\s*/i, '');
+      // Title case
+      cleaned = cleaned.replace(/\b\w/g, char => char.toUpperCase());
+      break;
+      
     case 'subsection':
-      return cleanSubsectionTitle(text);
-    
+      // Subsection titles - clean but preserve casing
+      cleaned = cleaned.replace(/^(title|heading):\s*/i, '');
+      break;
+      
     case 'bullet':
-      return cleanBulletPoint(text);
-    
-    case 'contact':
-      return cleanContactInfo(text);
-    
+      // Bullet points - preserve content as is
+      break;
+      
     default:
-      // Default cleaning
-      let cleaned = removeMarkdown(text);
-      cleaned = cleanBulletPoint(cleaned);
-      return cleaned;
+      break;
   }
+  
+  // Final trim
+  cleaned = cleaned.trim();
+  
+  // Remove if only contains special characters or is too short
+  if (cleaned.length < 2 || /^[^a-zA-Z0-9]+$/.test(cleaned)) {
+    return '';
+  }
+  
+  return cleaned;
 };
 
 /**
- * Check if text is empty after cleaning
+ * Clean section name
  */
-export const isEmptyAfterCleaning = (text) => {
-  const cleaned = cleanText(text);
-  return !cleaned || cleaned === '';
+export const cleanSectionName = (sectionName) => {
+  return cleanText(sectionName, 'section');
 };
 
-export default {
-  removeMarkdown,
-  cleanBulletPoint,
-  cleanSectionName,
-  cleanSubsectionTitle,
-  cleanContactInfo,
-  cleanText,
-  isEmptyAfterCleaning
+/**
+ * Clean subsection title
+ */
+export const cleanSubsectionTitle = (title) => {
+  return cleanText(title, 'subsection');
+};
+
+/**
+ * Clean bullet point data
+ */
+export const cleanBulletPoint = (bullet) => {
+  return cleanText(bullet, 'bullet');
+};
+
+/**
+ * Check if text is valid (not empty after cleaning)
+ */
+export const isValidText = (text) => {
+  const cleaned = cleanText(text);
+  return cleaned.length > 0 && cleaned !== 'NA' && cleaned !== 'N/A';
 };

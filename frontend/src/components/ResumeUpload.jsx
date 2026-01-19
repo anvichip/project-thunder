@@ -1,4 +1,4 @@
-// src/components/ResumeUpload.jsx - FIXED VERSION
+// src/components/ResumeUpload.jsx - FIXED to pass userId correctly
 import { useState } from 'react';
 import { resumeAPI } from '../services/api';
 import AuthHeader from './AuthHeader';
@@ -15,7 +15,7 @@ const ResumeUpload = ({ userData, authMethod, onNext, onLogout }) => {
         selectedFile.name.endsWith('.docx') || selectedFile.name.endsWith('.doc'))) {
       setFile(selectedFile);
       setError('');
-      setParsedSections([]); // Clear previous sections
+      setParsedSections([]);
     } else {
       setError('Please upload a PDF or DOCX file');
       setFile(null);
@@ -28,16 +28,25 @@ const ResumeUpload = ({ userData, authMethod, onNext, onLogout }) => {
       return;
     }
 
+    // Validate userData and email
+    if (!userData || !userData.email) {
+      setError('User email is required. Please log in again.');
+      return;
+    }
+
     setUploading(true);
     setError('');
 
     try {
       console.log('Uploading resume:', file.name);
-      const response = await resumeAPI.uploadResume(file, userData?.email || 'unknown');
+      console.log('User data:', userData);
+      console.log('User email:', userData.email);
+      
+      // FIXED: Pass email correctly as userId
+      const response = await resumeAPI.uploadResume(file, userData.email);
       
       console.log('Upload response:', response);
       
-      // Check if extractedData exists and has sections
       if (!response.extractedData) {
         throw new Error('No extracted data received from server');
       }
@@ -107,17 +116,6 @@ const ResumeUpload = ({ userData, authMethod, onNext, onLogout }) => {
       setError('Please upload and parse a resume first');
       return;
     }
-
-    // Validate all sections have data
-    // const hasEmptySection = parsedSections.some(section => 
-    //   !section.subsections || section.subsections.length === 0 ||
-    //   section.subsections.some(subsection => !subsection.data || subsection.data.length === 0)
-    // );
-
-    // if (hasEmptySection) {
-    //   setError('Please ensure all sections have data before continuing');
-    //   return;
-    // }
     
     console.log('Submitting parsed sections:', { sections: parsedSections });
     

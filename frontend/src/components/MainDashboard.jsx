@@ -1,6 +1,6 @@
-// src/components/MainDashboard.jsx - FINAL FIXED VERSION
+// src/components/MainDashboard.jsx - UPDATED IMPORT
 import { useState, useEffect } from 'react';
-import { profileAPI } from '../services/api';
+import { profileAPI, resumeAPI } from '../services/api'; // FIXED: Add resumeAPI
 import EditProfileModal from './EditProfileModal';
 import EditRolesModal from './EditRolesModal';
 import MyResumes from './MyResumes';
@@ -14,6 +14,7 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
   const [loading, setLoading] = useState(true);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showEditRoles, setShowEditRoles] = useState(false);
+  const [resumeNeedsRefresh, setResumeNeedsRefresh] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -34,12 +35,22 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
     fetchProfile();
   }, [userData]);
 
+  useEffect(() => {
+    if (activeTab === 'my-resumes' && resumeNeedsRefresh) {
+      console.log('🔄 Resume tab activated after profile change - triggering refresh');
+      setResumeNeedsRefresh(false);
+    }
+  }, [activeTab, resumeNeedsRefresh]);
+
   const handleProfileUpdate = async (updatedData) => {
     try {
       await profileAPI.updateProfile(userData.email, updatedData);
       setFullProfile({ ...fullProfile, resumeData: updatedData });
       setShowEditProfile(false);
-      alert('Profile updated successfully!');
+      
+      setResumeNeedsRefresh(true);
+      
+      alert('Profile updated successfully! Your resume will be updated automatically.');
     } catch (error) {
       console.error('Error updating profile:', error);
       alert('Failed to update profile. Please try again.');
@@ -51,7 +62,10 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
       await profileAPI.updateRoles(userData.email, updatedRoles);
       setFullProfile({ ...fullProfile, selectedRoles: updatedRoles });
       setShowEditRoles(false);
-      alert('Roles updated successfully!');
+      
+      setResumeNeedsRefresh(true);
+      
+      alert('Roles updated successfully! Your resume will be updated automatically.');
     } catch (error) {
       console.error('Error updating roles:', error);
       alert('Failed to update roles. Please try again.');
@@ -60,7 +74,7 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
 
   const navItems = [
     { id: 'profile', label: 'Profile', icon: '👤' },
-    { id: 'my-resumes', label: 'My Resumes', icon: '📄' },
+    { id: 'my-resumes', label: 'My Resumes', icon: '📄', badge: resumeNeedsRefresh ? 'Updated' : null },
     { id: 'analytics', label: 'Analytics', icon: '📊' },
     { id: 'settings', label: 'Settings', icon: '⚙️' }
   ];
@@ -84,7 +98,7 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
           />
         );
       case 'my-resumes':
-        return <MyResumes userData={userData} />;
+        return <MyResumes userData={userData} key={resumeNeedsRefresh ? Date.now() : 'stable'} />;
       case 'analytics':
         return <AnalyticsView />;
       case 'settings':
@@ -139,7 +153,7 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
                 className={`
-                  flex items-center gap-2 px-4 py-2 rounded-lg transition whitespace-nowrap font-medium text-sm
+                  relative flex items-center gap-2 px-4 py-2 rounded-lg transition whitespace-nowrap font-medium text-sm
                   ${activeTab === item.id
                     ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md'
                     : 'text-gray-700 hover:bg-gray-100'
@@ -147,6 +161,11 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
                 `}
               >
                 {item.label}
+                {item.badge && (
+                  <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">
+                    {item.badge}
+                  </span>
+                )}
               </button>
             ))}
           </div>
