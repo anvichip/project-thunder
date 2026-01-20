@@ -1,7 +1,7 @@
-// src/services/api.js - COMPLETE FIXED VERSION
+// src/services/api.js - COMPLETE VERSION with Profile API
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.REACT_BASE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -53,6 +53,7 @@ api.interceptors.response.use(
   }
 );
 
+// Auth API
 export const authAPI = {
   register: async (username, email, password) => {
     try {
@@ -98,6 +99,7 @@ export const authAPI = {
   },
 };
 
+// Resume API
 export const resumeAPI = {
   uploadResume: async (file, userId) => {
     try {
@@ -155,7 +157,6 @@ export const resumeAPI = {
     }
   },
 
-  // NEW: Get user's resume
   getUserResume: async (email) => {
     try {
       console.log('Fetching resume for:', email);
@@ -174,6 +175,7 @@ export const resumeAPI = {
   },
 };
 
+// Profile API - WITH NAME EXTRACTION
 export const profileAPI = {
   saveProfile: async (email, resumeData, selectedRoles) => {
     try {

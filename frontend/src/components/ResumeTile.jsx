@@ -1,4 +1,4 @@
-// src/components/ResumeTile.jsx - UPDATED for consistency
+// src/components/ResumeTile.jsx - UPDATED VERSION
 import { useState } from 'react';
 
 const ResumeTile = ({ resumeData, onClick }) => {
@@ -11,8 +11,8 @@ const ResumeTile = ({ resumeData, onClick }) => {
   const handleCopyLink = async (e) => {
     e.stopPropagation();
     
-    // FIXED: Use backend URL for sharable link
-    const fullUrl = `${import.meta.env.REACT_BASE_API_URL}${resumeData.sharable_link}`;
+    const apiUrl = import.meta.env.REACT_BASE_API_URL || 'http://localhost:8000';
+    const fullUrl = `${apiUrl}${resumeData.sharable_link}`;
     
     try {
       await navigator.clipboard.writeText(fullUrl);
@@ -42,13 +42,8 @@ const ResumeTile = ({ resumeData, onClick }) => {
 
         {/* Title */}
         <h3 className="text-xl font-bold text-gray-800 mb-2">
-          {metadata.name || 'Professional Resume'}
+          {'Your Resume'}
         </h3>
-
-        {/* Subtitle */}
-        {metadata.title && (
-          <p className="text-sm text-gray-600 mb-4">{metadata.title}</p>
-        )}
 
         {/* Stats */}
         <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
@@ -81,19 +76,19 @@ const ResumeTile = ({ resumeData, onClick }) => {
         }`}
       >
         <div className="text-center px-6">
-          <div className="mb-4">
+          {/* <div className="mb-4">
             <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto backdrop-blur-sm">
               <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
               </svg>
             </div>
-          </div>
+          </div> */}
 
           <div className="mb-4">
             <p className="text-white font-semibold mb-2">Sharable Link</p>
             <div className="bg-white/10 backdrop-blur-sm rounded-lg p-2">
               <p className="text-white/90 text-xs truncate">
-                {import.meta.env.REACT_BASE_API_URL}{resumeData.sharable_link}
+                {import.meta.env.REACT_BASE_API_URL || 'http://localhost:8000'}{resumeData.sharable_link}
               </p>
             </div>
           </div>

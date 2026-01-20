@@ -1,50 +1,385 @@
-// src/components/ResumePopup.jsx - FINAL FIXED VERSION
 import { useState, useEffect } from 'react';
+import { useAuth0 } from "@auth0/auth0-react";
 
-const ResumePopup = ({ resumeData, onClose, onCopyLink }) => {
+const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
   const [resumeHtml, setResumeHtml] = useState('');
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
+  const [profileData, setProfileData] = useState(null);
 
-  // Get API URL with fallback
+  const { user, isAuthenticated } = useAuth0();
+
+  let userName = null;
+
+  if (isAuthenticated) {
+    userName = user.name;
+  }
+
   const getApiUrl = () => {
-    const apiUrl = import.meta.env.REACT_BASE_API_URL || 'http://localhost:8000';
-    console.log('API URL:', apiUrl);
-    return apiUrl;
+    return import.meta.env.VITE_API_URL || 'http://localhost:8000';
   };
 
   useEffect(() => {
-    fetchResumeHtml();
+    fetchProfileAndGenerateResume();
   }, [resumeData]);
 
-  const fetchResumeHtml = async () => {
+  const fetchProfileAndGenerateResume = async () => {
     try {
       setLoading(true);
       setError('');
-      
-      console.log('📖 Fetching resume HTML for ID:', resumeData.resume_id);
-      
+
+      console.log('📖 Fetching profile data and generating resume');
+
+      // Fetch profile from API
       const apiUrl = getApiUrl();
-      const fetchUrl = `${apiUrl}/resume/${resumeData.resume_id}`;
-      console.log('Fetching from:', fetchUrl);
+      const email = userData?.email || resumeData?.user_email;
       
-      const response = await fetch(fetchUrl);
-      
-      if (!response.ok) {
-        throw new Error(`Failed to load resume: ${response.status} ${response.statusText}`);
+      if (!email) {
+        throw new Error('User email not found');
       }
+
+      const profileResponse = await fetch(`${apiUrl}/api/user-profile/${email}`);
       
-      const html = await response.text();
-      console.log('✅ Resume HTML loaded, length:', html.length);
+      if (!profileResponse.ok) {
+        throw new Error('Failed to fetch profile data');
+      }
+
+      const profile = await profileResponse.json();
+      console.log('✅ Profile data fetched:', profile);
       
+      setProfileData(profile);
+
+      // Extract sections from profile
+      const sections = profile.resumeData?.sections || resumeData.profile_data?.sections || [];
+      
+      // Generate HTML
+      const html = createResumeHtml(sections, profile);
       setResumeHtml(html);
+
+      console.log('✅ Resume HTML generated');
     } catch (error) {
-      console.error('❌ Error fetching resume HTML:', error);
-      setError(error.message || 'Failed to load resume preview');
+      console.error('❌ Error generating resume:', error);
+      setError(error.message || 'Failed to load resume');
     } finally {
       setLoading(false);
     }
+  };
+
+  const createResumeHtml = (sections, profile) => {
+    // Extract contact information
+    const contactInfo = extractContactInfo(sections);
+    
+    // Get name from profile data or contact info or metadata
+    const name = userName
+
+    return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${name} – Resume</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.55;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 2.2em 2.6em;
+      border-radius: 6px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.08);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 1.5em;
+      padding-bottom: 1em;
+      border-bottom: 2px solid #e0e0e0;
+    }
+
+    h1 {
+      margin: 0 0 0.5em 0;
+      font-size: 2em;
+      font-weight: bold;
+      color: #222;
+    }
+
+    h2 {
+      margin-top: 1.7em;
+      padding-bottom: 4px;
+      font-size: 1.3em;
+      border-bottom: 1px solid #ddd;
+      color: #333;
+      margin-bottom: 0.8em;
+    }
+
+    h3 {
+      margin: 0.6em 0 0.2em 0;
+      font-size: 1.1em;
+      color: #222;
+      font-weight: bold;
+    }
+
+    address {
+      font-style: normal;
+      color: #444;
+      font-size: 0.95em;
+      line-height: 1.6;
+    }
+
+    ul {
+      margin: 0.4em 0 0.4em 1.1em;
+      padding-left: 0;
+    }
+
+    li {
+      margin: 0.28em 0;
+      line-height: 1.5;
+    }
+
+    p {
+      margin: 0.3em 0;
+      font-size: 0.97em;
+      color: #333;
+    }
+
+    a {
+      color: #0057b8;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+
+    .section {
+      margin-bottom: 1.5em;
+    }
+
+    .subsection {
+      margin-bottom: 1em;
+    }
+
+    .subsection-data {
+      margin-left: 0;
+    }
+
+    .contact-links {
+      margin-top: 0.5em;
+    }
+
+    .separator {
+      margin: 0 0.3em;
+    }
+
+    @media print {
+      body {
+        background: white;
+        padding: 0;
+      }
+      
+      .container {
+        box-shadow: none;
+        padding: 1em;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- HEADER -->
+    <header>
+      <h1>${name}</h1>
+      <address>
+        ${contactInfo.links.length > 0 ? `<div class="contact-links">${contactInfo.links.join(' <span class="separator">•</span> ')}</div>` : ''}
+        ${contactInfo.email || contactInfo.phone ? `<div style="margin-top: 0.4em;">
+          ${contactInfo.email || ''}${contactInfo.email && contactInfo.phone ? ' <span class="separator">•</span> ' : ''}${contactInfo.phone || ''}
+        </div>` : ''}
+      </address>
+    </header>
+
+    ${generateSectionsHtml(sections)}
+  </div>
+</body>
+</html>
+    `;
+  };
+
+  const extractContactInfo = (sections) => {
+    const info = {
+      name: '',
+      email: '',
+      phone: '',
+      links: []
+    };
+
+    if (!sections || !Array.isArray(sections)) {
+      return info;
+    }
+
+    sections.forEach(section => {
+      const sectionName = section.section_name?.toLowerCase() || '';
+      
+      if (sectionName.includes('contact') || sectionName.includes('personal')) {
+        section.subsections?.forEach(subsection => {
+          const title = subsection.title?.toLowerCase() || '';
+          const data = subsection.data || [];
+
+          // Extract name from title
+          if (subsection.title && !info.name) {
+            const titleWords = subsection.title.split(' ');
+            if (titleWords.length >= 2 && titleWords.length <= 4) {
+              const hasCapitals = titleWords.every(word => /^[A-Z]/.test(word));
+              if (hasCapitals && !title.includes('email') && !title.includes('phone')) {
+                info.name = subsection.title;
+              }
+            }
+          }
+
+          // Extract email
+          data.forEach(item => {
+            if (!info.email && item.includes('@')) {
+              const emailMatch = item.match(/([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/);
+              if (emailMatch) info.email = emailMatch[1];
+            }
+
+            // Extract phone
+            if (!info.phone && /[\d\+\-\(\)\s]{8,}/.test(item)) {
+              const phoneMatch = item.match(/(\+?\d{1,3}[-.\s]?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9})/);
+              if (phoneMatch) info.phone = phoneMatch[1];
+            }
+
+            // Extract GitHub
+            if (item.toLowerCase().includes('github') || item.includes('github.com')) {
+              const match = item.match(/(https?:\/\/github\.com\/[^\s)]+|github\.com\/[^\s)]+)/i);
+              if (match) {
+                const url = match[1].startsWith('http') ? match[1] : `https://${match[1]}`;
+                info.links.push(`<a href="${url}">GitHub</a>`);
+              }
+            }
+
+            // Extract LinkedIn
+            if (item.toLowerCase().includes('linkedin') || item.includes('linkedin.com')) {
+              const match = item.match(/(https?:\/\/(?:www\.)?linkedin\.com\/[^\s)]+|linkedin\.com\/[^\s)]+)/i);
+              if (match) {
+                const url = match[1].startsWith('http') ? match[1] : `https://${match[1]}`;
+                info.links.push(`<a href="${url}">LinkedIn</a>`);
+              }
+            }
+
+            // Extract Portfolio/Website
+            if ((item.includes('http') || item.includes('www.')) && 
+                !item.toLowerCase().includes('github') && 
+                !item.toLowerCase().includes('linkedin')) {
+              const match = item.match(/(https?:\/\/[^\s)]+|www\.[^\s)]+)/i);
+              if (match) {
+                const url = match[1].startsWith('http') ? match[1] : `https://${match[1]}`;
+                info.links.push(`<a href="${url}">Portfolio</a>`);
+              }
+            }
+          });
+        });
+      }
+    });
+
+    // Remove duplicate links
+    info.links = [...new Set(info.links)];
+
+    return info;
+  };
+
+  const generateSectionsHtml = (sections) => {
+    return sections
+      .filter(section => {
+        const name = section.section_name?.toLowerCase() || '';
+        // Skip contact section as it's in header
+        return !name.includes('contact') && !name.includes('personal information');
+      })
+      .map(section => {
+        const sectionName = section.section_name || 'Section';
+        const subsections = section.subsections || [];
+
+        return `
+    <section class="section">
+      <h2>${sectionName}</h2>
+      ${subsections.map(subsection => generateSubsectionHtml(subsection, sectionName)).join('\n')}
+    </section>`;
+      })
+      .join('\n');
+  };
+
+  const generateSubsectionHtml = (subsection, sectionName) => {
+    const title = subsection.title || '';
+    const data = subsection.data || [];
+    const sectionLower = sectionName.toLowerCase();
+
+    // Format based on section type
+    if (sectionLower.includes('skill') || sectionLower.includes('technical')) {
+      return `
+      <div class="subsection">
+        ${title ? `<p><strong>${title}:</strong> ${data.join(', ')}</p>` : `<p>${data.join(', ')}</p>`}
+      </div>`;
+    }
+
+    if (sectionLower.includes('achievement') || sectionLower.includes('award')) {
+      return `
+      <div class="subsection">
+        <ul>
+          ${title ? `<li><strong>${title}:</strong> ${data.join(' ')}</li>` : data.map(item => `<li>${item}</li>`).join('\n')}
+        </ul>
+      </div>`;
+    }
+
+    if (sectionLower.includes('coursework') || sectionLower.includes('course')) {
+      return `
+      <div class="subsection">
+        ${title ? `<p><strong>${title}:</strong></p>` : ''}
+        <ul>
+          ${data.map(item => `<li>${item}</li>`).join('\n')}
+        </ul>
+      </div>`;
+    }
+
+    if (sectionLower.includes('education') || sectionLower.includes('experience') || sectionLower.includes('project') || sectionLower.includes('position')) {
+      return `
+      <div class="subsection">
+        ${title ? `<h3>${title}</h3>` : ''}
+        ${data.length > 0 ? `
+        ${data[0] && !data[0].startsWith('_•_') ? `<p>${data[0]}</p>` : ''}
+        ${data.filter(item => item.startsWith('_•_') || data.length > 1 && data.indexOf(item) > 0).length > 0 ? `
+        <ul class="subsection-data">
+          ${data.filter(item => item.startsWith('_•_') || (data.length > 1 && data.indexOf(item) > 0 && !data[0].startsWith('_•_'))).map(item => {
+            const cleanItem = item.replace(/^_•_\s*/, '');
+            return `<li>${cleanItem}</li>`;
+          }).join('\n')}
+        </ul>` : ''}` : ''}
+      </div>`;
+    }
+
+    // Default format
+    return `
+      <div class="subsection">
+        ${title ? `<h3>${title}</h3>` : ''}
+        ${data.length > 0 ? `
+        <ul class="subsection-data">
+          ${data.map(item => `<li>${item}</li>`).join('\n')}
+        </ul>` : ''}
+      </div>`;
   };
 
   const handleBackdropClick = (e) => {
@@ -70,7 +405,6 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink }) => {
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
       console.error('Failed to copy:', err);
-      // Fallback for older browsers
       const textArea = document.createElement('textarea');
       textArea.value = fullUrl;
       textArea.style.position = 'fixed';
@@ -227,22 +561,10 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink }) => {
                 </svg>
                 <h3 className="text-lg font-semibold text-gray-800 mb-2">Preview Unavailable</h3>
                 <p className="text-gray-600 mb-4">{error}</p>
-                <div className="space-y-2">
-                  <button
-                    onClick={fetchResumeHtml}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                  >
-                    Retry
-                  </button>
-                  <p className="text-xs text-gray-500">
-                    Make sure backend is running at: {apiUrl}
-                  </p>
-                </div>
               </div>
             </div>
           ) : (
             <div className="max-w-4xl mx-auto bg-white shadow-2xl rounded-lg overflow-hidden">
-              {/* Use srcdoc to embed HTML directly, no iframe src */}
               <iframe
                 srcDoc={resumeHtml}
                 className="w-full border-none"

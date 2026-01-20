@@ -826,13 +826,341 @@ load_dotenv()
 
 # ... (keep your existing imports and setup)
 
+# main.py - UPDATED RESUME VIEW ENDPOINT
+# Add this function before the @app.get("/resume/{resume_id}") endpoint
+
+def generate_html_from_profile_data(profile_data: dict, metadata: dict) -> str:
+    """
+    Generate clean HTML from profile JSON data
+    """
+    sections = profile_data.get('sections', [])
+    
+    # Extract contact info
+    contact_info = extract_contact_from_sections(sections)
+    print(f"📇 Extracted Metadata: {metadata}")
+    print(f"📇 Extracted Profile Data: {profile_data}")
+    
+    # Get name from metadata or contact
+    name = metadata.get('name') or contact_info.get('name') or 'Resume'
+    
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{name} – Resume</title>
+  <style>
+    * {{
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }}
+
+    body {{
+      font-family: Arial, Helvetica, sans-serif;
+      background: #f5f5f5;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.55;
+    }}
+
+    .container {{
+      max-width: 760px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 2.2em 2.6em;
+      border-radius: 6px;
+      box-shadow: 0 0 12px rgba(0,0,0,0.08);
+    }}
+
+    header {{
+      text-align: center;
+      margin-bottom: 1.5em;
+      padding-bottom: 1em;
+      border-bottom: 2px solid #e0e0e0;
+    }}
+
+    h1 {{
+      margin: 0 0 0.5em 0;
+      font-size: 2em;
+      font-weight: bold;
+      color: #222;
+    }}
+
+    h2 {{
+      margin-top: 1.7em;
+      padding-bottom: 4px;
+      font-size: 1.3em;
+      border-bottom: 1px solid #ddd;
+      color: #333;
+      margin-bottom: 0.8em;
+    }}
+
+    h3 {{
+      margin: 0.6em 0 0.2em 0;
+      font-size: 1.1em;
+      color: #222;
+      font-weight: bold;
+    }}
+
+    address {{
+      font-style: normal;
+      color: #444;
+      font-size: 0.95em;
+      line-height: 1.6;
+    }}
+
+    ul {{
+      margin: 0.4em 0 0.4em 1.1em;
+      padding-left: 0;
+    }}
+
+    li {{
+      margin: 0.28em 0;
+      line-height: 1.5;
+    }}
+
+    p {{
+      margin: 0.3em 0;
+      font-size: 0.97em;
+      color: #333;
+    }}
+
+    a {{
+      color: #0057b8;
+      text-decoration: none;
+    }}
+
+    a:hover {{
+      text-decoration: underline;
+    }}
+
+    .section {{
+      margin-bottom: 1.5em;
+    }}
+
+    .subsection {{
+      margin-bottom: 1em;
+    }}
+
+    .contact-links {{
+      margin-top: 0.5em;
+    }}
+
+    .separator {{
+      margin: 0 0.3em;
+    }}
+
+    @media print {{
+      body {{
+        background: white;
+        padding: 0;
+      }}
+      
+      .container {{
+        box-shadow: none;
+        padding: 1em;
+      }}
+    }}
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>{name}</h1>
+      <address>
+"""
+    
+    # Add contact links
+    if contact_info.get('links'):
+        html += f"        <div class=\"contact-links\">{' <span class=\"separator\">•</span> '.join(contact_info['links'])}</div>\n"
+    
+    # Add email and phone
+    contact_line = []
+    if contact_info.get('email'):
+        contact_line.append(contact_info['email'])
+    if contact_info.get('phone'):
+        contact_line.append(contact_info['phone'])
+    
+    if contact_line:
+        html += f"        <div style=\"margin-top: 0.4em;\">{' <span class=\"separator\">•</span> '.join(contact_line)}</div>\n"
+    
+    html += """      </address>
+    </header>
+
+"""
+    
+    # Generate sections
+    for section in sections:
+        section_name = section.get('section_name', '').lower()
+        
+        # Skip contact section
+        if 'contact' in section_name or 'personal information' in section_name:
+            continue
+        
+        html += f"    <section class=\"section\">\n"
+        html += f"      <h2>{section.get('section_name', 'Section')}</h2>\n"
+        
+        subsections = section.get('subsections', [])
+        for subsection in subsections:
+            html += generate_subsection_html(subsection, section.get('section_name', ''))
+        
+        html += "    </section>\n\n"
+    
+    html += """  </div>
+</body>
+</html>"""
+    
+    return html
+
+
+def extract_contact_from_sections(sections: list) -> dict:
+    """Extract contact information from sections"""
+    import re
+    
+    info = {
+        'name': '',
+        'email': '',
+        'phone': '',
+        'links': []
+    }
+    
+    for section in sections:
+        section_name = section.get('section_name', '').lower()
+        
+        if 'contact' in section_name or 'personal' in section_name:
+            for subsection in section.get('subsections', []):
+                title = subsection.get('title', '')
+                data = subsection.get('data', [])
+                
+                # Try to extract name from title
+                if title and not info['name']:
+                    title_words = title.split()
+                    if 2 <= len(title_words) <= 4:
+                        if all(word[0].isupper() for word in title_words if word):
+                            if 'email' not in title.lower() and 'phone' not in title.lower():
+                                info['name'] = title
+                
+                for item in data:
+                    # Extract email
+                    if '@' in item and not info['email']:
+                        email_match = re.search(r'([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})', item)
+                        if email_match:
+                            info['email'] = email_match.group(1)
+                    
+                    # Extract phone
+                    if not info['phone'] and re.search(r'[\d\+\-\(\)\s]{8,}', item):
+                        phone_match = re.search(r'(\+?\d{1,3}[-.\s]?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9})', item)
+                        if phone_match:
+                            info['phone'] = phone_match.group(1)
+                    
+                    # Extract GitHub
+                    if 'github' in item.lower() or 'github.com' in item:
+                        match = re.search(r'(https?://github\.com/[^\s)]+|github\.com/[^\s)]+)', item, re.IGNORECASE)
+                        if match:
+                            url = match.group(1) if match.group(1).startswith('http') else f'https://{match.group(1)}'
+                            info['links'].append(f'<a href="{url}">GitHub</a>')
+                    
+                    # Extract LinkedIn
+                    if 'linkedin' in item.lower() or 'linkedin.com' in item:
+                        match = re.search(r'(https?://(?:www\.)?linkedin\.com/[^\s)]+|linkedin\.com/[^\s)]+)', item, re.IGNORECASE)
+                        if match:
+                            url = match.group(1) if match.group(1).startswith('http') else f'https://{match.group(1)}'
+                            info['links'].append(f'<a href="{url}">LinkedIn</a>')
+                    
+                    # Extract Portfolio
+                    if ('http' in item or 'www.' in item) and 'github' not in item.lower() and 'linkedin' not in item.lower():
+                        match = re.search(r'(https?://[^\s)]+|www\.[^\s)]+)', item, re.IGNORECASE)
+                        if match:
+                            url = match.group(1) if match.group(1).startswith('http') else f'https://{match.group(1)}'
+                            info['links'].append(f'<a href="{url}">Portfolio</a>')
+    
+    # Remove duplicates
+    info['links'] = list(dict.fromkeys(info['links']))
+    
+    return info
+
+
+def generate_subsection_html(subsection: dict, section_name: str) -> str:
+    """Generate HTML for a subsection"""
+    title = subsection.get('title', '')
+    data = subsection.get('data', [])
+    section_lower = section_name.lower()
+    
+    html = "      <div class=\"subsection\">\n"
+    
+    # Skills section - inline
+    if 'skill' in section_lower or 'technical' in section_lower:
+        if title:
+            html += f"        <p><strong>{title}:</strong> {', '.join(data)}</p>\n"
+        else:
+            html += f"        <p>{', '.join(data)}</p>\n"
+    
+    # Achievements/Awards - list
+    elif 'achievement' in section_lower or 'award' in section_lower:
+        html += "        <ul>\n"
+        if title:
+            html += f"          <li><strong>{title}:</strong> {' '.join(data)}</li>\n"
+        else:
+            for item in data:
+                if item.strip():
+                    html += f"          <li>{item}</li>\n"
+        html += "        </ul>\n"
+    
+    # Coursework - structured list
+    elif 'coursework' in section_lower or 'course' in section_lower:
+        if title:
+            html += f"        <p><strong>{title}:</strong></p>\n"
+        html += "        <ul>\n"
+        for item in data:
+            if item.strip():
+                html += f"          <li>{item}</li>\n"
+        html += "        </ul>\n"
+    
+    # Experience/Education/Projects/Positions - structured
+    elif any(keyword in section_lower for keyword in ['experience', 'education', 'project', 'position', 'responsibility']):
+        if title:
+            html += f"        <h3>{title}</h3>\n"
+        
+        # First item might be date/location
+        if data:
+            first_item = data[0] if data else ''
+            bullet_items = [item for item in data if item.startswith('_•_') or (len(data) > 1 and data.index(item) > 0 and not first_item.startswith('_•_'))]
+            
+            if first_item and not first_item.startswith('_•_'):
+                html += f"        <p>{first_item}</p>\n"
+            
+            if bullet_items:
+                html += "        <ul>\n"
+                for item in bullet_items:
+                    clean_item = item.replace('_•_', '').strip()
+                    if clean_item:
+                        html += f"          <li>{clean_item}</li>\n"
+                html += "        </ul>\n"
+    
+    # Default format
+    else:
+        if title:
+            html += f"        <h3>{title}</h3>\n"
+        if data:
+            html += "        <ul>\n"
+            for item in data:
+                if item.strip():
+                    html += f"          <li>{item}</li>\n"
+            html += "        </ul>\n"
+    
+    html += "      </div>\n"
+    return html
+
+
+# NOW UPDATE THE ENDPOINT
 @app.get("/resume/{resume_id}", response_class=HTMLResponse)
 async def view_sharable_resume(resume_id: str):
-    """Public endpoint to view resume via sharable link - CLEAN VIEW ONLY"""
+    """Public endpoint to view resume via sharable link - CLEAN VIEW"""
     try:
         print(f"👁️ Viewing sharable resume: {resume_id}")
         
-        # Find resume by resume_id
         resume = await resumes_collection.find_one({"resume_id": resume_id})
         
         if not resume:
@@ -885,122 +1213,16 @@ async def view_sharable_resume(resume_id: str):
         
         print(f"✅ Serving resume (view #{resume.get('view_count', 0) + 1})")
         
-        # CRITICAL: Check if html_content exists
-        html_content = resume.get('html_content')
+        # Generate clean HTML from profile_data
+        profile_data = resume.get('profile_data', {})
+        metadata = resume.get('metadata', {})
         
-        if not html_content:
-            print(f"⚠️ No HTML content found in resume, regenerating...")
-            
-            # Try to regenerate HTML from profile data
-            user_email = resume.get('user_email')
-            if user_email:
-                try:
-                    # Regenerate resume
-                    await generate_user_resume(user_email)
-                    # Fetch updated resume
-                    resume = await resumes_collection.find_one({"resume_id": resume_id})
-                    html_content = resume.get('html_content')
-                except Exception as regen_error:
-                    print(f"❌ Resume regeneration failed: {regen_error}")
-        
-        # If still no HTML, return error page
-        if not html_content:
-            return HTMLResponse(
-                content="""
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>Resume Error</title>
-                    <style>
-                        body { 
-                            font-family: Arial, sans-serif; 
-                            text-align: center; 
-                            padding: 50px;
-                            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                            min-height: 100vh;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            margin: 0;
-                        }
-                        .container {
-                            background: white;
-                            padding: 40px;
-                            border-radius: 20px;
-                            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-                        }
-                        h1 { color: #e74c3c; margin-bottom: 20px; }
-                        p { color: #666; font-size: 16px; }
-                    </style>
-                </head>
-                <body>
-                    <div class="container">
-                        <h1>⚠️ Resume Content Unavailable</h1>
-                        <p>This resume needs to be regenerated.</p>
-                        <p>Please contact the resume owner.</p>
-                    </div>
-                </body>
-                </html>
-                """,
-                status_code=500
-            )
-        
-        # Return CLEAN resume HTML
-        clean_html = f"""
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{resume.get('metadata', {}).get('name', 'Resume')} - Resume</title>
-    <style>
-        body {{
-            margin: 0;
-            padding: 20px;
-            background: #f5f5f5;
-            font-family: Arial, sans-serif;
-        }}
-        .resume-container {{
-            max-width: 850px;
-            margin: 0 auto;
-            background: white;
-            padding: 40px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            border-radius: 8px;
-        }}
-        @media print {{
-            body {{
-                background: white;
-                padding: 0;
-            }}
-            .resume-container {{
-                box-shadow: none;
-                padding: 0;
-                max-width: 100%;
-            }}
-        }}
-        @media (max-width: 768px) {{
-            .resume-container {{
-                padding: 20px;
-            }}
-        }}
-    </style>
-</head>
-<body>
-    <div class="resume-container">
-        {html_content}
-    </div>
-</body>
-</html>
-"""
+        clean_html = generate_html_from_profile_data(profile_data, metadata)
         
         return HTMLResponse(content=clean_html)
         
     except Exception as e:
         print(f"❌ View resume error: {e}")
-        import traceback
         traceback.print_exc()
         return HTMLResponse(
             content="""
@@ -1042,7 +1264,6 @@ async def view_sharable_resume(resume_id: str):
             """,
             status_code=500
         )
-
 
 # Also update the generate_user_resume function to ensure HTML is properly generated
 async def generate_user_resume(email: str):

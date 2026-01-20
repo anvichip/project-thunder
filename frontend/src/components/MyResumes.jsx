@@ -1,6 +1,6 @@
-// src/components/MyResumes.jsx - FIXED VERSION
+// src/components/MyResumes.jsx - UPDATED VERSION
 import { useState, useEffect } from 'react';
-import { resumeAPI } from '../services/api'; // FIXED: Use named import
+import { resumeAPI } from '../services/api';
 import ResumeTile from './ResumeTile';
 import ResumePopup from './ResumePopup';
 
@@ -17,7 +17,7 @@ const MyResumes = ({ userData }) => {
   const fetchResumeData = async () => {
     try {
       setLoading(true);
-      setError(''); // Clear previous errors
+      setError('');
       
       console.log('Fetching resume for user:', userData?.email);
       
@@ -52,7 +52,6 @@ const MyResumes = ({ userData }) => {
         alert('Link copied to clipboard!');
       } catch (err) {
         console.error('Failed to copy:', err);
-        // Fallback
         const textArea = document.createElement('textarea');
         textArea.value = fullUrl;
         document.body.appendChild(textArea);
@@ -125,10 +124,11 @@ const MyResumes = ({ userData }) => {
           </div>
         ) : null}
 
-        {/* Resume Popup */}
+        {/* Resume Popup - PASS userData */}
         {showPopup && resumeData && (
           <ResumePopup 
             resumeData={resumeData}
+            userData={userData}
             onClose={handleClosePopup}
             onCopyLink={handleCopyLink}
           />
