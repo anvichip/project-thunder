@@ -811,24 +811,6 @@ async def get_user_resume(email: str):
             detail=f"An error occurred while loading your resume: {str(e)}"
         )
 
-# main.py - Public Resume View Endpoint (should already exist)
-
-# main.py - FIXED Resume View Endpoint
-# Add this to your existing main.py or replace the resume endpoint
-
-from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
-from motor.motor_asyncio import AsyncIOMotorClient
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-
-# ... (keep your existing imports and setup)
-
-# main.py - UPDATED RESUME VIEW ENDPOINT
-# Add this function before the @app.get("/resume/{resume_id}") endpoint
-
 def generate_html_from_profile_data(profile_data: dict, metadata: dict) -> str:
     """
     Generate clean HTML from profile JSON data
