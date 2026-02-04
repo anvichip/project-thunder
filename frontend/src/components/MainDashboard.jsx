@@ -7,6 +7,7 @@ import MyResumes from './MyResumes';
 import AnalyticsView from './AnalyticsView';
 import ProfileView from './ProfileView';
 import SettingsView from './SettingsView';
+import JDMatcher from './JDMatcher'
 
 const MainDashboard = ({ userData, profileData, onLogout }) => {
   const [activeTab, setActiveTab] = useState('profile');
@@ -76,6 +77,7 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
     { id: 'profile', label: 'Profile', icon: '👤' },
     { id: 'my-resumes', label: 'My Resumes', icon: '📄', badge: resumeNeedsRefresh ? 'Updated' : null },
     { id: 'analytics', label: 'Analytics', icon: '📊' },
+    { id: 'jd-matcher', label: 'JD Matcher', icon: '⚙️' },
     { id: 'settings', label: 'Settings', icon: '⚙️' }
   ];
 
@@ -103,6 +105,8 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
         return <AnalyticsView />;
       case 'settings':
         return <SettingsView />;
+      case 'jd-matcher':
+        return <JDMatcher />;
       default:
         return <ProfileView profileData={fullProfile} />;
     }
