@@ -1,3 +1,4 @@
+// src/components/AnalyticsDashboard.jsx - Commercial Grade Design
 import React, { useState } from 'react';
 import { LineChart, Line, BarChart, Bar, ScatterChart, Scatter, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ReferenceLine, Cell } from 'recharts';
 
@@ -32,19 +33,15 @@ const AnalyticsDashboard = () => {
   ];
 
   const engagementClusters = [
-    // Bounced
     { scrollDepth: 15, timeSpent: 8, cluster: 'Bounce', color: '#EF4444' },
     { scrollDepth: 20, timeSpent: 12, cluster: 'Bounce', color: '#EF4444' },
     { scrollDepth: 10, timeSpent: 5, cluster: 'Bounce', color: '#EF4444' },
-    // Stuck at top
     { scrollDepth: 25, timeSpent: 45, cluster: 'Stuck', color: '#F59E0B' },
     { scrollDepth: 30, timeSpent: 52, cluster: 'Stuck', color: '#F59E0B' },
     { scrollDepth: 28, timeSpent: 48, cluster: 'Stuck', color: '#F59E0B' },
-    // Fast skimmer
     { scrollDepth: 85, timeSpent: 25, cluster: 'Skimmer', color: '#3B82F6' },
     { scrollDepth: 90, timeSpent: 30, cluster: 'Skimmer', color: '#3B82F6' },
     { scrollDepth: 95, timeSpent: 28, cluster: 'Skimmer', color: '#3B82F6' },
-    // Deeply engaged
     { scrollDepth: 95, timeSpent: 120, cluster: 'Engaged', color: '#10B981' },
     { scrollDepth: 100, timeSpent: 145, cluster: 'Engaged', color: '#10B981' },
     { scrollDepth: 98, timeSpent: 135, cluster: 'Engaged', color: '#10B981' },
@@ -91,10 +88,10 @@ const AnalyticsDashboard = () => {
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-3 shadow-lg rounded-lg border border-gray-200">
-          <p className="text-sm font-semibold text-gray-800">{label}</p>
+        <div className="bg-white p-4 shadow-2xl rounded-2xl border-2 border-gray-200">
+          <p className="text-sm font-bold text-gray-900 mb-2">{label}</p>
           {payload.map((entry, index) => (
-            <p key={index} className="text-sm" style={{ color: entry.color }}>
+            <p key={index} className="text-sm font-semibold" style={{ color: entry.color }}>
               {entry.name}: {entry.value}
             </p>
           ))}
@@ -105,28 +102,35 @@ const AnalyticsDashboard = () => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-zinc-100 p-8">
+      <div className="max-w-[1600px] mx-auto">
+        {/* Premium Header */}
+        <div className="bg-white rounded-3xl shadow-2xl p-10 mb-8 border border-gray-100">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                <span className="text-3xl">📊</span>
+            <div className="flex items-center gap-6">
+              <div className="relative">
+                <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-600 rounded-3xl flex items-center justify-center shadow-2xl transform hover:scale-110 transition-transform duration-300">
+                  <span className="text-4xl">📊</span>
+                </div>
+                <div className="absolute -top-2 -right-2 w-8 h-8 bg-green-500 rounded-full border-4 border-white shadow-lg flex items-center justify-center">
+                  <span className="text-xs font-bold text-white">AI</span>
+                </div>
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-gray-800">Resume Analytics</h1>
-                <p className="text-gray-600 mt-1">Track performance and engagement insights</p>
+                <h1 className="text-4xl font-bold text-gray-900 mb-2 tracking-tight">Resume Analytics</h1>
+                <p className="text-gray-600 text-lg font-medium">
+                  Deep insights into your resume performance
+                </p>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               {['7d', '30d', '90d'].map(range => (
                 <button
                   key={range}
                   onClick={() => setTimeRange(range)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                  className={`px-6 py-3 rounded-xl font-bold text-sm transition-all duration-200 ${
                     timeRange === range
-                      ? 'bg-blue-600 text-white shadow-md'
+                      ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-500/30 scale-105'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                   }`}
                 >
@@ -137,90 +141,97 @@ const AnalyticsDashboard = () => {
           </div>
         </div>
 
-        {/* Key Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          <MetricCard title="Total Views" value="405" change="+24%" icon="👁️" color="blue" />
-          <MetricCard title="Avg. Time" value="78s" change="+12%" icon="⏱️" color="green" />
-          <MetricCard title="Click Rate" value="29.8%" change="+5.2%" icon="🎯" color="purple" />
-          <MetricCard title="Engagement" value="65%" change="+8%" icon="🔥" color="orange" />
+        {/* Key Metrics Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <MetricCard title="Total Views" value="405" change="+24%" icon="👁️" gradient="from-blue-500 to-cyan-500" />
+          <MetricCard title="Avg. Time" value="78s" change="+12%" icon="⏱️" gradient="from-green-500 to-emerald-500" />
+          <MetricCard title="Click Rate" value="29.8%" change="+5.2%" icon="🎯" gradient="from-purple-500 to-pink-500" />
+          <MetricCard title="Engagement" value="65%" change="+8%" icon="🔥" gradient="from-orange-500 to-red-500" />
         </div>
 
         {/* Traffic Section */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-            <span>📈</span> Traffic & Reach
+        <div className="bg-white rounded-3xl shadow-2xl p-10 mb-8 border border-gray-100">
+          <h2 className="text-3xl font-bold text-gray-900 mb-8 flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg">
+              <span className="text-2xl">📈</span>
+            </div>
+            <span className="tracking-tight">Traffic & Reach</span>
           </h2>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Views Over Time */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">Views Over Time</h3>
-              <ResponsiveContainer width="100%" height={250}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <ChartContainer title="Views Over Time">
+              <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={viewsOverTime}>
+                  <defs>
+                    <linearGradient id="lineGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.3}/>
+                      <stop offset="95%" stopColor="#3B82F6" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                  <XAxis dataKey="date" stroke="#6B7280" style={{ fontSize: '12px' }} />
-                  <YAxis stroke="#6B7280" style={{ fontSize: '12px' }} />
+                  <XAxis dataKey="date" stroke="#6B7280" style={{ fontSize: '12px', fontWeight: 600 }} />
+                  <YAxis stroke="#6B7280" style={{ fontSize: '12px', fontWeight: 600 }} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Line type="monotone" dataKey="views" stroke="#3B82F6" strokeWidth={3} dot={{ fill: '#3B82F6', r: 5 }} />
+                  <Area type="monotone" dataKey="views" stroke="#3B82F6" fill="url(#lineGradient)" />
+                  <Line type="monotone" dataKey="views" stroke="#3B82F6" strokeWidth={4} dot={{ fill: '#3B82F6', r: 6, strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 8 }} />
                   {viewsOverTime.filter(d => d.event).map((d, i) => (
-                    <ReferenceLine key={i} x={d.date} stroke="#EF4444" strokeDasharray="3 3" label={{ value: d.event, position: 'top', fill: '#EF4444', fontSize: 10 }} />
+                    <ReferenceLine key={i} x={d.date} stroke="#EF4444" strokeDasharray="5 5" strokeWidth={2} />
                   ))}
                 </LineChart>
               </ResponsiveContainer>
-            </div>
+            </ChartContainer>
 
-            {/* Views by Source */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">Views by Source</h3>
-              <ResponsiveContainer width="100%" height={250}>
+            <ChartContainer title="Views by Source">
+              <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={viewsBySource}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                  <XAxis dataKey="source" stroke="#6B7280" style={{ fontSize: '12px' }} />
-                  <YAxis stroke="#6B7280" style={{ fontSize: '12px' }} />
+                  <XAxis dataKey="source" stroke="#6B7280" style={{ fontSize: '12px', fontWeight: 600 }} />
+                  <YAxis stroke="#6B7280" style={{ fontSize: '12px', fontWeight: 600 }} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="views" radius={[8, 8, 0, 0]}>
+                  <Bar dataKey="views" radius={[12, 12, 0, 0]}>
                     {viewsBySource.map((entry, index) => (
                       <Cell key={index} fill={entry.color} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            </div>
+            </ChartContainer>
           </div>
         </div>
 
         {/* Engagement Patterns */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-            <span>🔍</span> Engagement Patterns
+        <div className="bg-white rounded-3xl shadow-2xl p-10 mb-8 border border-gray-100">
+          <h2 className="text-3xl font-bold text-gray-900 mb-8 flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
+              <span className="text-2xl">🔍</span>
+            </div>
+            <span className="tracking-tight">Engagement Patterns</span>
           </h2>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Peak Activity Heatmap */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">Peak Activity Times</h3>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <ChartContainer title="Peak Activity Times">
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr>
-                      <th className="text-left p-2 text-gray-600">Day</th>
+                      <th className="text-left p-3 text-gray-700 font-bold">Day</th>
                       {Object.keys(heatmapData[0]).filter(k => k !== 'day').map(hour => (
-                        <th key={hour} className="text-center p-2 text-gray-600">{hour}</th>
+                        <th key={hour} className="text-center p-3 text-gray-700 font-bold">{hour}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {heatmapData.map((row, i) => (
                       <tr key={i}>
-                        <td className="p-2 font-medium text-gray-700">{row.day}</td>
+                        <td className="p-3 font-bold text-gray-800">{row.day}</td>
                         {Object.entries(row).filter(([k]) => k !== 'day').map(([hour, val], j) => {
                           const intensity = Math.min(val / 40, 1);
                           return (
                             <td key={j} className="p-2">
                               <div 
-                                className="w-full h-8 rounded flex items-center justify-center text-xs font-semibold"
+                                className="w-full h-12 rounded-xl flex items-center justify-center text-xs font-bold shadow-sm hover:shadow-md transition-shadow cursor-pointer"
                                 style={{ 
-                                  backgroundColor: `rgba(59, 130, 246, ${intensity})`,
+                                  backgroundColor: `rgba(99, 102, 241, ${intensity})`,
                                   color: intensity > 0.5 ? 'white' : '#1F2937'
                                 }}
                               >
@@ -234,12 +245,10 @@ const AnalyticsDashboard = () => {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </ChartContainer>
 
-            {/* Behavior Clusters */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">Behavior Clusters</h3>
-              <ResponsiveContainer width="100%" height={250}>
+            <ChartContainer title="Behavior Clusters">
+              <ResponsiveContainer width="100%" height={280}>
                 <ScatterChart>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                   <XAxis 
@@ -248,7 +257,7 @@ const AnalyticsDashboard = () => {
                     name="Scroll Depth" 
                     unit="%" 
                     stroke="#6B7280"
-                    style={{ fontSize: '12px' }}
+                    style={{ fontSize: '12px', fontWeight: 600 }}
                   />
                   <YAxis 
                     type="number" 
@@ -256,7 +265,7 @@ const AnalyticsDashboard = () => {
                     name="Time" 
                     unit="s" 
                     stroke="#6B7280"
-                    style={{ fontSize: '12px' }}
+                    style={{ fontSize: '12px', fontWeight: 600 }}
                   />
                   <Tooltip cursor={{ strokeDasharray: '3 3' }} content={<CustomTooltip />} />
                   <Legend />
@@ -266,21 +275,22 @@ const AnalyticsDashboard = () => {
                   <Scatter name="Engaged" data={engagementClusters.filter(d => d.cluster === 'Engaged')} fill="#10B981" />
                 </ScatterChart>
               </ResponsiveContainer>
-            </div>
+            </ChartContainer>
           </div>
         </div>
 
-        {/* Click Analysis */}
-        <div className="bg-white rounded-2xl shadow-lg p-8 mb-6">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-            <span>🔗</span> Link Engagement
+        {/* Link Engagement */}
+        <div className="bg-white rounded-3xl shadow-2xl p-10 mb-8 border border-gray-100">
+          <h2 className="text-3xl font-bold text-gray-900 mb-8 flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center shadow-lg">
+              <span className="text-2xl">🔗</span>
+            </div>
+            <span className="tracking-tight">Link Engagement</span>
           </h2>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* CTR Trend */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">Click-Through Rate Trend</h3>
-              <ResponsiveContainer width="100%" height={250}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <ChartContainer title="Click-Through Rate Trend">
+              <ResponsiveContainer width="100%" height={280}>
                 <AreaChart data={ctrOverTime}>
                   <defs>
                     <linearGradient id="ctrGradient" x1="0" y1="0" x2="0" y2="1">
@@ -289,63 +299,60 @@ const AnalyticsDashboard = () => {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                  <XAxis dataKey="date" stroke="#6B7280" style={{ fontSize: '12px' }} />
-                  <YAxis stroke="#6B7280" style={{ fontSize: '12px' }} unit="%" />
+                  <XAxis dataKey="date" stroke="#6B7280" style={{ fontSize: '12px', fontWeight: 600 }} />
+                  <YAxis stroke="#6B7280" style={{ fontSize: '12px', fontWeight: 600 }} unit="%" />
                   <Tooltip content={<CustomTooltip />} />
-                  <Area type="monotone" dataKey="ctr" stroke="#10B981" strokeWidth={2} fill="url(#ctrGradient)" />
+                  <Area type="monotone" dataKey="ctr" stroke="#10B981" strokeWidth={3} fill="url(#ctrGradient)" />
                 </AreaChart>
               </ResponsiveContainer>
-            </div>
+            </ChartContainer>
 
-            {/* Link Distribution */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">Clicks by Link</h3>
-              <ResponsiveContainer width="100%" height={250}>
+            <ChartContainer title="Clicks by Link">
+              <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={linkClicks} layout="vertical">
                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                  <XAxis type="number" stroke="#6B7280" style={{ fontSize: '12px' }} />
-                  <YAxis type="category" dataKey="link" stroke="#6B7280" style={{ fontSize: '12px' }} />
+                  <XAxis type="number" stroke="#6B7280" style={{ fontSize: '12px', fontWeight: 600 }} />
+                  <YAxis type="category" dataKey="link" stroke="#6B7280" style={{ fontSize: '12px', fontWeight: 600 }} />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="clicks" radius={[0, 8, 8, 0]}>
+                  <Bar dataKey="clicks" radius={[0, 12, 12, 0]}>
                     {linkClicks.map((entry, index) => (
                       <Cell key={index} fill={entry.color} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            </div>
+            </ChartContainer>
           </div>
         </div>
 
         {/* Content Performance */}
-        <div className="bg-white rounded-2xl shadow-lg p-8">
-          <h2 className="text-2xl font-bold text-gray-800 mb-6 flex items-center gap-2">
-            <span>📄</span> Content Performance
+        <div className="bg-white rounded-3xl shadow-2xl p-10 border border-gray-100">
+          <h2 className="text-3xl font-bold text-gray-900 mb-8 flex items-center gap-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-2xl flex items-center justify-center shadow-lg">
+              <span className="text-2xl">📄</span>
+            </div>
+            <span className="tracking-tight">Content Performance</span>
           </h2>
           
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Section Attention */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">Average Time per Section</h3>
-              <ResponsiveContainer width="100%" height={250}>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <ChartContainer title="Average Time per Section">
+              <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={sectionAttention}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                  <XAxis dataKey="section" stroke="#6B7280" style={{ fontSize: '12px' }} />
-                  <YAxis stroke="#6B7280" style={{ fontSize: '12px' }} unit="s" />
+                  <XAxis dataKey="section" stroke="#6B7280" style={{ fontSize: '12px', fontWeight: 600 }} />
+                  <YAxis stroke="#6B7280" style={{ fontSize: '12px', fontWeight: 600 }} unit="s" />
                   <Tooltip content={<CustomTooltip />} />
-                  <Bar dataKey="avgTime" radius={[8, 8, 0, 0]}>
+                  <Bar dataKey="avgTime" radius={[12, 12, 0, 0]}>
                     {sectionAttention.map((entry, index) => (
                       <Cell key={index} fill={entry.color} />
                     ))}
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
-            </div>
+            </ChartContainer>
 
-            {/* Retention Curve */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-4">Reader Retention Curve</h3>
-              <ResponsiveContainer width="100%" height={250}>
+            <ChartContainer title="Reader Retention Curve">
+              <ResponsiveContainer width="100%" height={280}>
                 <AreaChart data={retentionCurve}>
                   <defs>
                     <linearGradient id="retentionGradient" x1="0" y1="0" x2="0" y2="1">
@@ -354,15 +361,19 @@ const AnalyticsDashboard = () => {
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-                  <XAxis dataKey="time" stroke="#6B7280" style={{ fontSize: '12px' }} unit="s" />
-                  <YAxis stroke="#6B7280" style={{ fontSize: '12px' }} unit="%" />
+                  <XAxis dataKey="time" stroke="#6B7280" style={{ fontSize: '12px', fontWeight: 600 }} unit="s" />
+                  <YAxis stroke="#6B7280" style={{ fontSize: '12px', fontWeight: 600 }} unit="%" />
                   <Tooltip content={<CustomTooltip />} />
                   <Area type="monotone" dataKey="retention" stroke="#7C3AED" strokeWidth={3} fill="url(#retentionGradient)" />
-                  <ReferenceLine y={50} stroke="#EF4444" strokeDasharray="3 3" label={{ value: '50% threshold', fill: '#EF4444', fontSize: 12 }} />
+                  <ReferenceLine y={50} stroke="#EF4444" strokeDasharray="5 5" strokeWidth={2} />
                 </AreaChart>
               </ResponsiveContainer>
-              <p className="text-sm text-gray-600 mt-2">At 30s, 65% of readers are still engaged</p>
-            </div>
+              <div className="mt-4 p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl border-2 border-purple-200">
+                <p className="text-sm font-bold text-purple-900">
+                  💡 Insight: At 30s, 65% of readers are still engaged — above industry average!
+                </p>
+              </div>
+            </ChartContainer>
           </div>
         </div>
       </div>
@@ -370,26 +381,37 @@ const AnalyticsDashboard = () => {
   );
 };
 
-const MetricCard = ({ title, value, change, icon, color }) => {
-  const colorClasses = {
-    blue: 'from-blue-500 to-blue-600',
-    green: 'from-green-500 to-green-600',
-    purple: 'from-purple-500 to-purple-600',
-    orange: 'from-orange-500 to-orange-600',
-  };
+const MetricCard = ({ title, value, change, icon, gradient }) => {
+  const isPositive = change.startsWith('+');
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6">
-      <div className="flex items-center justify-between mb-3">
-        <div className={`w-12 h-12 bg-gradient-to-br ${colorClasses[color]} rounded-xl flex items-center justify-center shadow-md`}>
-          <span className="text-2xl">{icon}</span>
+    <div className="group relative bg-white rounded-2xl shadow-lg hover:shadow-2xl p-6 transition-all duration-300 border border-gray-100 overflow-hidden">
+      <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br opacity-5 rounded-full blur-2xl" style={{ backgroundImage: `linear-gradient(to bottom right, var(--tw-gradient-stops))` }}></div>
+      
+      <div className="flex items-start justify-between mb-4 relative z-10">
+        <div className={`w-14 h-14 bg-gradient-to-br ${gradient} rounded-2xl flex items-center justify-center shadow-xl group-hover:scale-110 transition-transform duration-300`}>
+          <span className="text-3xl">{icon}</span>
         </div>
-        <span className="text-sm font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-lg">
+        <div className={`px-3 py-1.5 rounded-xl text-xs font-bold shadow-md ${
+          isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+        }`}>
           {change}
-        </span>
+        </div>
       </div>
-      <h3 className="text-sm text-gray-600 font-medium mb-1">{title}</h3>
-      <p className="text-3xl font-bold text-gray-800">{value}</p>
+      
+      <div className="relative z-10">
+        <h3 className="text-sm text-gray-600 font-bold uppercase tracking-wider mb-2">{title}</h3>
+        <p className="text-4xl font-bold text-gray-900">{value}</p>
+      </div>
+    </div>
+  );
+};
+
+const ChartContainer = ({ title, children }) => {
+  return (
+    <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl p-6 border border-gray-200">
+      <h3 className="text-lg font-bold text-gray-800 mb-6">{title}</h3>
+      {children}
     </div>
   );
 };

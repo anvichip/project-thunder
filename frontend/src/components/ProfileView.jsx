@@ -1,16 +1,22 @@
+// src/components/ProfileView.jsx - Commercial Redesign
 import ContentFormatter from './ContentFormatter';
 import { cleanText } from '../utils/textCleaner';
 
 const ProfileView = ({ profileData, onEditProfile, onEditRoles }) => {
   if (!profileData || !profileData.resumeData) {
     return (
-      <div className="bg-white rounded-2xl shadow-lg p-8">
-        <div className="text-center py-12">
-          <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-          <p className="text-gray-600 text-lg">No profile data available.</p>
-          <p className="text-gray-500 text-sm mt-2">Upload your resume to get started</p>
+      <div className="card p-12 text-center scale-in">
+        <div className="max-w-md mx-auto">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-neutral-100 to-neutral-200 flex items-center justify-center">
+            <svg className="w-10 h-10 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <h3 className="text-2xl font-bold text-neutral-900 mb-2">No Profile Data</h3>
+          <p className="text-neutral-600 mb-6">Upload your resume to get started</p>
+          <button className="btn btn-primary">
+            Upload Resume
+          </button>
         </div>
       </div>
     );
@@ -18,34 +24,51 @@ const ProfileView = ({ profileData, onEditProfile, onEditRoles }) => {
 
   const sections = profileData.resumeData.sections || [];
 
-  // Helper function to get section icon
   const getSectionIcon = (sectionName) => {
     const name = sectionName.toLowerCase();
-    if (name.includes('contact') || name.includes('personal') || name.includes('biswajeet')) return '📧';
+    if (name.includes('contact') || name.includes('personal')) return '📧';
     if (name.includes('education')) return '🎓';
     if (name.includes('experience') || name.includes('work')) return '💼';
     if (name.includes('skill') || name.includes('technical')) return '🛠️';
     if (name.includes('project')) return '🚀';
     if (name.includes('achievement')) return '🏆';
-    if (name.includes('certification') || name.includes('certificate')) return '📜';
+    if (name.includes('certification')) return '📜';
     if (name.includes('publication')) return '📚';
-    if (name.includes('responsibility') || name.includes('position')) return '📋';
-    if (name.includes('coursework') || name.includes('course')) return '📚';
+    if (name.includes('responsibility')) return '📋';
+    if (name.includes('coursework')) return '📚';
     return '📋';
   };
 
+  const getSectionColor = (index) => {
+    const colors = [
+      'from-blue-500 to-cyan-500',
+      'from-purple-500 to-pink-500',
+      'from-orange-500 to-red-500',
+      'from-green-500 to-emerald-500',
+      'from-indigo-500 to-blue-500',
+      'from-pink-500 to-rose-500'
+    ];
+    return colors[index % colors.length];
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Header with Edit Button */}
-      <div className="bg-white rounded-2xl shadow-lg p-6">
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-800">My Profile</h1>
-            <p className="text-gray-600 mt-1">View and manage your resume information</p>
+    <div className="space-y-8">
+      {/* Header Card */}
+      <div className="card card-glow p-8 fade-in">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div className="flex-1">
+            <div className="flex items-center gap-3 mb-3">
+              <h1 className="text-4xl font-bold gradient-text">My Profile</h1>
+              <span className="badge badge-success">Active</span>
+            </div>
+            <p className="text-neutral-600 text-lg">
+              View and manage your professional resume information
+            </p>
           </div>
+          
           <button
             onClick={onEditProfile}
-            className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition shadow-md font-medium"
+            className="btn btn-primary hover-lift"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -55,58 +78,72 @@ const ProfileView = ({ profileData, onEditProfile, onEditRoles }) => {
         </div>
       </div>
 
-      {/* Dynamic Sections from Resume */}
+      {/* Dynamic Sections */}
       {sections.map((section, sectionIndex) => {
-        // Clean section name
         const cleanedSectionName = cleanText(section.section_name, 'section');
         
-        // Skip empty sections
         if (!cleanedSectionName) return null;
 
         return (
-          <div key={sectionIndex} className="bg-white rounded-2xl shadow-lg overflow-hidden">
+          <div 
+            key={sectionIndex} 
+            className="card hover-lift overflow-hidden stagger-item"
+            style={{ animationDelay: `${sectionIndex * 0.1}s` }}
+          >
             {/* Section Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-8 py-4">
-              <h2 className="text-2xl font-bold text-white flex items-center">
-                <span className="mr-3 text-3xl">{getSectionIcon(cleanedSectionName)}</span>
-                {cleanedSectionName}
-              </h2>
+            <div className={`bg-gradient-to-r ${getSectionColor(sectionIndex)} p-6 relative overflow-hidden`}>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full -ml-12 -mb-12"></div>
+              
+              <div className="relative flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-3xl">
+                  {getSectionIcon(cleanedSectionName)}
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-2xl font-bold text-white">
+                    {cleanedSectionName}
+                  </h2>
+                  <p className="text-white/80 text-sm mt-1">
+                    {section.subsections?.length || 0} {section.subsections?.length === 1 ? 'entry' : 'entries'}
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Section Content */}
             <div className="p-8">
               {section.subsections && section.subsections.length > 0 ? (
-                <div className="space-y-6">
+                <div className="space-y-8">
                   {section.subsections.map((subsection, subIndex) => {
-                    // Clean subsection title
                     const cleanedTitle = cleanText(subsection.title, 'subsection');
 
                     return (
-                      <div key={subIndex} className="border-l-4 border-blue-500 pl-6">
+                      <div key={subIndex} className="group">
                         {/* Subsection Title */}
                         {cleanedTitle && cleanedTitle.trim() !== '' && (
-                          <h3 className="text-lg font-bold text-gray-800 mb-3">
-                            {cleanedTitle}
-                          </h3>
+                          <div className="flex items-start gap-4 mb-4">
+                            <div className="w-1 h-full bg-gradient-to-b from-primary-500 to-accent-purple rounded-full"></div>
+                            <h3 className="text-xl font-bold text-neutral-900 flex-1">
+                              {cleanedTitle}
+                            </h3>
+                          </div>
                         )}
 
                         {/* Subsection Data */}
                         {subsection.data && subsection.data.length > 0 ? (
-                          <div className="space-y-2">
+                          <div className="space-y-3 ml-8">
                             {subsection.data.map((item, dataIndex) => {
-                              // Clean the text
                               const cleanedItem = cleanText(item, 'bullet');
                               
-                              // Skip empty items
                               if (!cleanedItem || cleanedItem === 'NA') return null;
                               
                               return (
                                 <div 
                                   key={dataIndex} 
-                                  className="flex items-start gap-3 group hover:bg-blue-50 p-3 rounded-lg transition-colors"
+                                  className="flex items-start gap-4 group/item hover:bg-primary-50/50 p-4 rounded-xl transition-all duration-200"
                                 >
-                                  <span className="text-blue-600 mt-1 flex-shrink-0 font-bold">•</span>
-                                  <div className="text-gray-700 leading-relaxed flex-1 break-words">
+                                  <div className="w-2 h-2 mt-2 rounded-full bg-gradient-to-br from-primary-500 to-accent-purple flex-shrink-0"></div>
+                                  <div className="flex-1 text-neutral-700 leading-relaxed">
                                     <ContentFormatter text={cleanedItem} />
                                   </div>
                                 </div>
@@ -114,44 +151,62 @@ const ProfileView = ({ profileData, onEditProfile, onEditRoles }) => {
                             })}
                           </div>
                         ) : (
-                          <p className="text-gray-500 italic">No data available</p>
+                          <p className="text-neutral-500 italic ml-8">No data available</p>
                         )}
                       </div>
                     );
                   })}
                 </div>
               ) : (
-                <p className="text-gray-500 italic">No information available in this section</p>
+                <div className="text-center py-12">
+                  <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-neutral-100 flex items-center justify-center">
+                    <svg className="w-8 h-8 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                    </svg>
+                  </div>
+                  <p className="text-neutral-500">No information available in this section</p>
+                </div>
               )}
             </div>
           </div>
         );
       })}
 
-      {/* Selected Roles */}
+      {/* Selected Roles Card */}
       {profileData?.selectedRoles && profileData.selectedRoles.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="bg-gradient-to-r from-purple-600 to-pink-600 px-8 py-4 flex justify-between items-center">
-            <h2 className="text-2xl font-bold text-white flex items-center">
-              <span className="mr-3 text-3xl">💼</span>
-              Selected Roles
-            </h2>
-            <button
-              onClick={onEditRoles}
-              className="flex items-center gap-2 px-4 py-2 bg-white text-purple-600 rounded-lg hover:bg-gray-100 transition font-medium text-sm"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
-              Edit Roles
-            </button>
+        <div className="card hover-lift overflow-hidden fade-in" style={{ animationDelay: '0.5s' }}>
+          <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-6 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+            
+            <div className="relative flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-3xl">
+                  💼
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white">Selected Roles</h2>
+                  <p className="text-white/80 text-sm mt-1">{profileData.selectedRoles.length} roles selected</p>
+                </div>
+              </div>
+              
+              <button
+                onClick={onEditRoles}
+                className="btn bg-white/20 backdrop-blur-sm text-white border-white/30 hover:bg-white/30"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit
+              </button>
+            </div>
           </div>
+          
           <div className="p-8">
             <div className="flex flex-wrap gap-3">
               {profileData.selectedRoles.map((role, index) => (
                 <span
                   key={index}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg font-medium shadow-md hover:shadow-lg transition transform hover:scale-105"
+                  className="badge badge-primary text-sm px-4 py-2 hover-lift"
                 >
                   {role}
                 </span>

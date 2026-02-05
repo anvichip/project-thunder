@@ -1,13 +1,13 @@
-// src/components/MainDashboard.jsx - UPDATED IMPORT
+// src/components/MainDashboard.jsx - Commercial Redesign
 import { useState, useEffect } from 'react';
-import { profileAPI, resumeAPI } from '../services/api'; // FIXED: Add resumeAPI
+import { profileAPI, resumeAPI } from '../services/api';
 import EditProfileModal from './EditProfileModal';
 import EditRolesModal from './EditRolesModal';
 import MyResumes from './MyResumes';
 import AnalyticsView from './AnalyticsView';
 import ProfileView from './ProfileView';
 import SettingsView from './SettingsView';
-import JDMatcher from './JDMatcher'
+import JDMatcher from './JDMatcher';
 
 const MainDashboard = ({ userData, profileData, onLogout }) => {
   const [activeTab, setActiveTab] = useState('profile');
@@ -16,6 +16,7 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showEditRoles, setShowEditRoles] = useState(false);
   const [resumeNeedsRefresh, setResumeNeedsRefresh] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -38,7 +39,6 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
 
   useEffect(() => {
     if (activeTab === 'my-resumes' && resumeNeedsRefresh) {
-      console.log('🔄 Resume tab activated after profile change - triggering refresh');
       setResumeNeedsRefresh(false);
     }
   }, [activeTab, resumeNeedsRefresh]);
@@ -48,13 +48,13 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
       await profileAPI.updateProfile(userData.email, updatedData);
       setFullProfile({ ...fullProfile, resumeData: updatedData });
       setShowEditProfile(false);
-      
       setResumeNeedsRefresh(true);
       
-      alert('Profile updated successfully! Your resume will be updated automatically.');
+      // Show success toast
+      showToast('Profile updated successfully!', 'success');
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert('Failed to update profile. Please try again.');
+      showToast('Failed to update profile', 'error');
     }
   };
 
@@ -63,29 +63,84 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
       await profileAPI.updateRoles(userData.email, updatedRoles);
       setFullProfile({ ...fullProfile, selectedRoles: updatedRoles });
       setShowEditRoles(false);
-      
       setResumeNeedsRefresh(true);
       
-      alert('Roles updated successfully! Your resume will be updated automatically.');
+      showToast('Roles updated successfully!', 'success');
     } catch (error) {
       console.error('Error updating roles:', error);
-      alert('Failed to update roles. Please try again.');
+      showToast('Failed to update roles', 'error');
     }
   };
 
+  const showToast = (message, type) => {
+    // Simple toast implementation
+    const toast = document.createElement('div');
+    toast.className = `fixed bottom-8 right-8 z-50 px-6 py-4 rounded-xl shadow-2xl bounce-in ${
+      type === 'success' ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-red-500 to-red-600'
+    } text-white font-semibold`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  };
+
   const navItems = [
-    { id: 'profile', label: 'Profile', icon: '👤' },
-    { id: 'my-resumes', label: 'My Resumes', icon: '📄', badge: resumeNeedsRefresh ? 'Updated' : null },
-    { id: 'analytics', label: 'Analytics', icon: '📊' },
-    { id: 'jd-matcher', label: 'JD Matcher', icon: '⚙️' },
-    { id: 'settings', label: 'Settings', icon: '⚙️' }
+    { 
+      id: 'profile', 
+      label: 'Profile', 
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+      )
+    },
+    { 
+      id: 'my-resumes', 
+      label: 'My Resumes', 
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      ),
+      badge: resumeNeedsRefresh ? 'Updated' : null 
+    },
+    { 
+      id: 'analytics', 
+      label: 'Analytics', 
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      )
+    },
+    { 
+      id: 'jd-matcher', 
+      label: 'JD Matcher', 
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+      )
+    },
+    { 
+      id: 'settings', 
+      label: 'Settings', 
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      )
+    }
   ];
 
   const renderContent = () => {
     if (loading && activeTab === 'profile') {
       return (
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <div className="spinner w-16 h-16 border-4 mx-auto mb-4"></div>
+            <p className="text-neutral-600 font-medium">Loading your profile...</p>
+          </div>
         </div>
       );
     }
@@ -103,83 +158,140 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
         return <MyResumes userData={userData} key={resumeNeedsRefresh ? Date.now() : 'stable'} />;
       case 'analytics':
         return <AnalyticsView />;
-      case 'settings':
-        return <SettingsView />;
       case 'jd-matcher':
         return <JDMatcher />;
+      case 'settings':
+        return <SettingsView />;
       default:
         return <ProfileView profileData={fullProfile} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      {/* Top Navbar */}
-      <nav className="bg-white shadow-md sticky top-0 z-50">
+    <div className="min-h-screen bg-neutral-50">
+      {/* Modern Top Navigation Bar */}
+      <nav className="glass sticky top-0 z-40 border-b-2 border-neutral-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo & Toggle */}
             <div className="flex items-center gap-4">
-              <h1 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Resume Unlocked
-              </h1>
+              <button
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="btn-ghost btn-icon lg:hidden"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+              </button>
+              
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl animated-gradient flex items-center justify-center shadow-md">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <span className="font-bold text-xl gradient-text hidden sm:block">Resume Unlocked</span>
+              </div>
             </div>
-            
+
+            {/* User Menu */}
             <div className="flex items-center gap-4">
-              <div className="hidden md:flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-lg">
+              {/* Notifications */}
+              <button className="btn-ghost btn-icon relative">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+                <span className="absolute top-1 right-1 w-2 h-2 bg-accent-pink rounded-full"></span>
+              </button>
+
+              {/* User Profile */}
+              <div className="flex items-center gap-3 pl-4 border-l-2 border-neutral-200">
                 {userData?.picture && (
                   <img
                     src={userData.picture}
                     alt="Profile"
-                    className="w-10 h-10 rounded-full border-2 border-blue-500"
+                    className="w-10 h-10 rounded-full ring-2 ring-primary-400"
                   />
                 )}
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-800 truncate max-w-[150px]">
+                <div className="hidden md:block">
+                  <p className="text-sm font-semibold text-neutral-900 truncate max-w-[150px]">
                     {userData?.name || userData?.username || userData?.email?.split('@')[0]}
                   </p>
-                  <p className="text-xs text-gray-500 truncate max-w-[150px]">{userData?.email}</p>
+                  <p className="text-xs text-neutral-500 truncate max-w-[150px]">{userData?.email}</p>
                 </div>
               </div>
               
               <button
                 onClick={onLogout}
-                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition font-medium text-sm"
+                className="btn btn-secondary"
               >
-                Logout
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                <span className="hidden sm:inline">Logout</span>
               </button>
             </div>
           </div>
+        </div>
+      </nav>
 
-          {/* Navigation Tabs */}
-          <div className="flex overflow-x-auto gap-2 py-3 border-t scrollbar-hide">
-            {navItems.map((item) => (
+      <div className="flex">
+        {/* Sidebar Navigation */}
+        <aside className={`
+          fixed lg:sticky top-16 left-0 h-[calc(100vh-4rem)] z-30
+          w-64 bg-white border-r-2 border-neutral-200
+          transform transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        `}>
+          <nav className="p-4 space-y-2">
+            {navItems.map((item, index) => (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => {
+                  setActiveTab(item.id);
+                  if (window.innerWidth < 1024) setSidebarOpen(false);
+                }}
                 className={`
-                  relative flex items-center gap-2 px-4 py-2 rounded-lg transition whitespace-nowrap font-medium text-sm
+                  w-full flex items-center gap-3 px-4 py-3 rounded-xl
+                  font-semibold text-sm transition-all duration-200
+                  stagger-item
                   ${activeTab === item.id
-                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md'
-                    : 'text-gray-700 hover:bg-gray-100'
+                    ? 'animated-gradient text-white shadow-glow'
+                    : 'text-neutral-700 hover:bg-neutral-100'
                   }
                 `}
+                style={{ animationDelay: `${index * 0.05}s` }}
               >
-                {item.label}
+                {item.icon}
+                <span className="flex-1 text-left">{item.label}</span>
                 {item.badge && (
-                  <span className="absolute -top-1 -right-1 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full animate-pulse">
+                  <span className="badge badge-success text-xs px-2 py-0.5">
                     {item.badge}
                   </span>
                 )}
               </button>
             ))}
-          </div>
-        </div>
-      </nav>
+          </nav>
 
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {renderContent()}
-      </main>
+          {/* Sidebar Footer */}
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t-2 border-neutral-200">
+            <div className="bg-gradient-to-r from-primary-50 to-accent-purple/10 rounded-xl p-4">
+              <p className="text-xs font-semibold text-neutral-900 mb-1">Need help?</p>
+              <p className="text-xs text-neutral-600 mb-3">Check our documentation</p>
+              <button className="btn btn-primary w-full text-xs py-2">
+                View Docs
+              </button>
+            </div>
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main className="flex-1 lg:ml-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {renderContent()}
+          </div>
+        </main>
+      </div>
 
       {/* Modals */}
       {showEditProfile && (
@@ -196,6 +308,14 @@ const MainDashboard = ({ userData, profileData, onLogout }) => {
           onSave={handleRolesUpdate}
           onClose={() => setShowEditRoles(false)}
         />
+      )}
+
+      {/* Overlay for mobile sidebar */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        ></div>
       )}
     </div>
   );
