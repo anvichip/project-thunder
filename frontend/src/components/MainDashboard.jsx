@@ -1,4 +1,4 @@
-// src/components/MainDashboard.jsx - Updated with Documentation and state management
+// src/components/MainDashboard.jsx - Minimal Professional Design
 import { useState, useEffect } from 'react';
 import { profileAPI } from '../services/api';
 import EditProfileModal from './EditProfileModal';
@@ -72,9 +72,9 @@ const MainDashboard = ({ userData, profileData, onLogout, activeTab, onTabChange
 
   const showToast = (message, type) => {
     const toast = document.createElement('div');
-    toast.className = `fixed bottom-8 right-8 z-50 px-6 py-4 rounded-lg shadow-xl scale-in ${
+    toast.className = `fixed bottom-8 right-8 z-50 px-4 py-3 rounded-lg shadow-lg scale-in ${
       type === 'success' ? 'bg-green-600' : 'bg-red-600'
-    } text-white font-semibold`;
+    } text-white text-sm font-medium`;
     toast.textContent = message;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 3000);
@@ -83,7 +83,7 @@ const MainDashboard = ({ userData, profileData, onLogout, activeTab, onTabChange
   const navItems = [
     { 
       id: 'profile', 
-      label: 'My Profile', 
+      label: 'Profile', 
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -92,13 +92,13 @@ const MainDashboard = ({ userData, profileData, onLogout, activeTab, onTabChange
     },
     { 
       id: 'my-resumes', 
-      label: 'My Resumes', 
+      label: 'Resumes', 
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
         </svg>
       ),
-      badge: resumeNeedsRefresh ? 'Updated' : null 
+      badge: resumeNeedsRefresh ? '•' : null 
     },
     { 
       id: 'analytics', 
@@ -120,7 +120,7 @@ const MainDashboard = ({ userData, profileData, onLogout, activeTab, onTabChange
     },
     { 
       id: 'docs', 
-      label: 'Documentation', 
+      label: 'Docs', 
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
@@ -134,8 +134,8 @@ const MainDashboard = ({ userData, profileData, onLogout, activeTab, onTabChange
       return (
         <div className="flex items-center justify-center h-screen">
           <div className="text-center">
-            <div className="spinner w-16 h-16 mx-auto mb-4"></div>
-            <p className="text-gray-600 font-medium">Loading your profile...</p>
+            <div className="spinner w-12 h-12 mx-auto mb-4"></div>
+            <p className="text-gray-600 font-medium">Loading profile...</p>
           </div>
         </div>
       );
@@ -148,6 +148,7 @@ const MainDashboard = ({ userData, profileData, onLogout, activeTab, onTabChange
             profileData={fullProfile}
             onEditProfile={() => setShowEditProfile(true)}
             onEditRoles={() => setShowEditRoles(true)}
+            userData={userData}
           />
         );
       case 'my-resumes':
@@ -159,34 +160,34 @@ const MainDashboard = ({ userData, profileData, onLogout, activeTab, onTabChange
       case 'docs':
         return <Documentation />;
       default:
-        return <ProfileView profileData={fullProfile} />;
+        return <ProfileView profileData={fullProfile} userData={userData} />;
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Top Navigation Bar */}
-      <nav className="glass sticky top-0 z-40 border-b border-gray-200">
+      <nav className="bg-white sticky top-0 z-40 border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             {/* Logo & Toggle */}
             <div className="flex items-center gap-4">
               <button
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="btn-ghost btn-icon lg:hidden"
+                className="p-2 hover:bg-gray-100 rounded-lg lg:hidden"
               >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
               </button>
               
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-teal-500 flex items-center justify-center">
-                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-9 h-9 rounded-lg bg-gray-900 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <span className="font-bold text-xl text-gray-900 hidden sm:block">Resume Unlocked</span>
+                <span className="font-semibold text-lg text-gray-900 hidden sm:block">Resume Unlocked</span>
               </div>
             </div>
 
@@ -197,11 +198,11 @@ const MainDashboard = ({ userData, profileData, onLogout, activeTab, onTabChange
                   <img
                     src={userData.picture}
                     alt="Profile"
-                    className="w-10 h-10 rounded-full ring-2 ring-blue-400"
+                    className="w-9 h-9 rounded-full ring-2 ring-gray-200"
                   />
                 )}
                 <div className="hidden md:block">
-                  <p className="text-sm font-semibold text-gray-900 truncate max-w-[150px]">
+                  <p className="text-sm font-medium text-gray-900 truncate max-w-[150px]">
                     {userData?.name || userData?.username || userData?.email?.split('@')[0]}
                   </p>
                   <p className="text-xs text-gray-500 truncate max-w-[150px]">{userData?.email}</p>
@@ -210,7 +211,7 @@ const MainDashboard = ({ userData, profileData, onLogout, activeTab, onTabChange
               
               <button
                 onClick={onLogout}
-                className="btn btn-secondary"
+                className="btn btn-secondary text-sm"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -230,8 +231,8 @@ const MainDashboard = ({ userData, profileData, onLogout, activeTab, onTabChange
           transform transition-transform duration-300 ease-in-out
           ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}>
-          <nav className="p-4 space-y-2">
-            {navItems.map((item, index) => (
+          <nav className="p-4 space-y-1">
+            {navItems.map((item) => (
               <button
                 key={item.id}
                 onClick={() => {
@@ -239,10 +240,10 @@ const MainDashboard = ({ userData, profileData, onLogout, activeTab, onTabChange
                   if (window.innerWidth < 1024) setSidebarOpen(false);
                 }}
                 className={`
-                  w-full flex items-center gap-3 px-4 py-3 rounded-lg
-                  font-semibold text-sm transition-all
+                  w-full flex items-center gap-3 px-4 py-2.5 rounded-lg
+                  font-medium text-sm transition-all
                   ${activeTab === item.id
-                    ? 'bg-blue-600 text-white shadow-md'
+                    ? 'bg-gray-900 text-white'
                     : 'text-gray-700 hover:bg-gray-100'
                   }
                 `}
@@ -250,15 +251,12 @@ const MainDashboard = ({ userData, profileData, onLogout, activeTab, onTabChange
                 {item.icon}
                 <span className="flex-1 text-left">{item.label}</span>
                 {item.badge && (
-                  <span className="badge badge-success text-xs px-2 py-0.5">
-                    {item.badge}
-                  </span>
+                  <span className={`w-2 h-2 rounded-full ${activeTab === item.id ? 'bg-white' : 'bg-blue-600'}`}></span>
                 )}
               </button>
             ))}
           </nav>
 
-          {/* Sidebar Footer */}
           <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
             <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
               <p className="text-xs font-semibold text-gray-900 mb-1">Need help?</p>
@@ -268,7 +266,7 @@ const MainDashboard = ({ userData, profileData, onLogout, activeTab, onTabChange
                   onTabChange('docs');
                   if (window.innerWidth < 1024) setSidebarOpen(false);
                 }}
-                className="btn btn-primary w-full text-xs py-2"
+                className="w-full text-xs py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors"
               >
                 View Docs
               </button>
