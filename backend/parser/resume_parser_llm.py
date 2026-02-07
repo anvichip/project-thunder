@@ -59,7 +59,7 @@ Instructions:
    - If ongoing → end_date = "Present"
 5. Extract bullet points as a list of strings.
 6. Extract skills mentioned within sections and also maintain a global unique skills list.
-7. If a field is missing, return null or an empty list.
+7. If a field is missing, do not include it. Do not make up data.
 8. For links included in sections 
 8. Return ONLY valid JSON. No explanation, no extra text.
 
@@ -69,63 +69,63 @@ Output JSON schema:
   "name": string | null,
 
   "contact_information": {{
-    "email": string | null,
-    "phone": string | null,
-    "location": string | null
+    "Email": string | null,
+    "Phone Number": string | null,
+    "Location": string | null
   }},
 
   "links": {{
-    "linkedin": string | null,
-    "github": string | null,
-    "portfolio": string | null,
-    "website": string | null
+    "LinkedIn": string | null,
+    "GitHub": string | null,
+    "Portfolio": string | null,
+    "Personal Website": string | null
   }},
 
-  "summary": string | null,
+  "Summary": string | null,
 
-  "work_experience": [
+  "Work Experience": [
     {{
-      "job_title": string,
-      "company": string,
-      "company_url": string | null,
-      "location": string | null,
-      "start_date": string | null,
-      "end_date": string | null,
-      "skills": [string],
-      "responsibilities": [string]
+      "Job Title": string,
+      "Company Name": string,
+      "Company URL": string | null,
+      "Location": string | null,
+      "Start Date": string | null,
+      "End Date": string | null,
+      "Skills": [string],
+      "Responsibilities": [string]
     }}
   ],
 
-  "education": [
+  "Education": [
     {{
-      "degree": string,
-      "field_of_study": string | null,
-      "institution": string,
-      "location": string | null,
-      "start_date": string | null,
-      "end_date": string | null,
-      "grade": string | null
+      "Degree": string,
+      "Field of Study": string | null,
+      "Institution Name": string,
+      "Location": string | null,
+      "Start Date": string | null,
+      "End Date": string | null,
+      "Grade": string | null
     }}
   ],
 
-  "projects": [
+  "Projects": [
     {{
-      "name": string,
-      "description": string,
-      "skills": [string],
-      "url": string | null
+      "Name": string,
+      "Description": string,
+      "Skills": [string],
+      "URL": string | null
     }}
   ],
 
-  "certifications": [
+  "Certifications": [
     {{
-      "name": string,
-      "issuer": string | null,
-      "date": string | null
+      "Name": string,
+      "Issuer": string | null,
+      "Date": string | null
     }}
   ],
 
-  "skills": [string]
+  "Skills": [string]
 }}
 
 Extraction Rules:
@@ -198,8 +198,8 @@ def main(file_path: str, output_path: str = "resume_parsed.json"):
     return output_path
 
 
-if __name__ == "__main__":
-    start_time = time.time()
-    main("/Users/kohli1/thunder/project-thunder/backend/Anvi_Kohli_Resume.pdf")
-    end_time = time.time()
-    print(f"\n⏱️ Total time taken: {end_time - start_time:.2f} seconds")
+# if __name__ == "__main__":
+#     start_time = time.time()
+#     main("/Users/kohli1/thunder/project-thunder/backend/Anvi_Kohli_Resume.pdf")
+#     end_time = time.time()
+#     print(f"\n⏱️ Total time taken: {end_time - start_time:.2f} seconds")

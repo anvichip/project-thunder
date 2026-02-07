@@ -132,8 +132,10 @@ def extract_detailed_from_docx(docx_path: str) -> tuple:
     return '\n'.join(content_parts), layout_info
 
 def convert_to_html_with_llm(text_content: str, layout_info: dict) -> str:
+    # print(f"Text Content {text_content}")
+    # print(f"Text Content {len(text_content)} chars, Layout Info: {layout_info}")
     """Use LLM to convert resume text to HTML preserving EXACT structure"""
-    print("🤖 Converting to HTML using LLM with layout preservation...")
+    # print("🤖 Converting to HTML using LLM with layout preservation...")
     
     # Create detailed layout description
     layout_desc = create_layout_description(layout_info)
@@ -142,9 +144,6 @@ def convert_to_html_with_llm(text_content: str, layout_info: dict) -> str:
 
 ORIGINAL RESUME CONTENT:
 {text_content}
-
-LAYOUT INFORMATION:
-{layout_desc}
 
 YOUR TASK:
 Create a complete HTML document that EXACTLY replicates the original resume's visual appearance.
@@ -195,6 +194,7 @@ Return ONLY the complete HTML document starting with <!DOCTYPE html>. No explana
             html_response = '<!DOCTYPE html>\n' + html_response
         
         print(f"✅ HTML template generated ({len(html_response)} chars)")
+        # print(f"Layout info used for LLM:\n{layout_desc}")
         return html_response
         
     except Exception as e:
@@ -358,3 +358,13 @@ def create_enhanced_html_fallback(text_content: str, layout_info: dict) -> str:
     ])
     
     return '\n'.join(html_parts)
+
+# if __name__ == "__main__":
+    # # Example usage
+    # test_file = "/Users/kohli1/thunder/project-thunder/backend/Anvi_Kohli_Resume.pdf"  # Replace with actual file path
+    # import time 
+    # start_time = time.time()
+    # html_output = extract_html_from_resume(test_file)
+    # end_time = time.time()
+    # print(f"⏱️ Extraction completed in {end_time - start_time:.2f} seconds")
+    # print(html_output)

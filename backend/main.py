@@ -399,7 +399,11 @@ async def upload_resume(
         
         try:
             from template_extractor_smart import extract_html_from_resume
+            import time
+            start_time = time.time()
             original_html_template = extract_html_from_resume(temp_path)
+            end_time = time.time()
+            print(f"⏱️ HTML Extraction completed in {end_time - start_time:.2f} seconds")
             print(f"✅ Original HTML template extracted ({len(original_html_template)} chars)")
         except Exception as template_error:
             print(f"⚠️ Template extraction failed: {template_error}")
