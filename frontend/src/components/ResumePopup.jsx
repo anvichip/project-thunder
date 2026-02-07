@@ -1,4 +1,4 @@
-// src/components/ResumePopup.jsx - Professional Redesign with Proper Name Extraction
+// src/components/ResumePopup.jsx - Updated with clickable links
 import { useState, useEffect } from 'react';
 import { useAuth0 } from "@auth0/auth0-react";
 
@@ -16,12 +16,23 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
     return import.meta.env.VITE_API_URL || 'http://localhost:8000';
   };
 
+  // Make links clickable
+  const makeLinksClickable = (text) => {
+    if (!text) return text;
+    
+    const urlPattern = /(https?:\/\/[^\s<>"]+|www\.[^\s<>"]+)/g;
+    
+    return text.replace(urlPattern, (url) => {
+      const fullUrl = url.startsWith('http') ? url : `https://${url}`;
+      return `<a href="${fullUrl}" target="_blank" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: underline;">${url}</a>`;
+    });
+  };
+
   // Extract name from profile data
   const extractNameFromProfile = (profile) => {
     try {
       const sections = profile.resumeData?.sections || [];
       
-      // Look for name in contact/personal information sections
       for (const section of sections) {
         const sectionName = section.section_name?.toLowerCase() || '';
         
@@ -34,7 +45,6 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
             const title = subsection.title?.trim() || '';
             const data = subsection.data || [];
             
-            // Check if title is a name (2-4 capitalized words)
             if (title) {
               const words = title.split(' ').filter(w => w);
               if (words.length >= 2 && words.length <= 4) {
@@ -48,7 +58,6 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
               }
             }
             
-            // Check first data item
             if (data.length > 0) {
               const firstItem = data[0].trim();
               if (firstItem && !firstItem.includes('@') && !firstItem.toLowerCase().includes('http')) {
@@ -66,13 +75,11 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
         }
       }
       
-      // Fallback to metadata
       if (resumeData?.metadata?.name) {
         console.log('📛 Using name from metadata:', resumeData.metadata.name);
         return resumeData.metadata.name;
       }
       
-      // Last resort fallbacks
       if (isAuthenticated && user?.name) {
         console.log('📛 Using Auth0 name:', user.name);
         return user.name;
@@ -88,6 +95,26 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
       console.error('Error extracting name:', err);
       return 'Resume';
     }
+  };
+
+  // Clean empty sections
+  const cleanEmptySections = (sections) => {
+    if (!sections || !Array.isArray(sections)) return [];
+    
+    return sections.filter(section => {
+      const subsections = section.subsections || [];
+      const validSubsections = subsections.filter(sub => {
+        const data = sub.data || [];
+        return data.length > 0 && data.some(item => item && item.trim());
+      });
+      return validSubsections.length > 0;
+    }).map(section => ({
+      ...section,
+      subsections: section.subsections.filter(sub => {
+        const data = sub.data || [];
+        return data.length > 0 && data.some(item => item && item.trim());
+      })
+    }));
   };
 
   useEffect(() => {
@@ -116,13 +143,13 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
       const profile = await profileResponse.json();
       setProfileData(profile);
       
-      // Extract name from profile
       const extractedName = extractNameFromProfile(profile);
       setDisplayName(extractedName);
       console.log('✅ Display name set to:', extractedName);
 
       const sections = profile.resumeData?.sections || resumeData.profile_data?.sections || [];
-      const html = createResumeHtml(sections, profile, extractedName);
+      const cleanedSections = cleanEmptySections(sections);
+      const html = createResumeHtml(cleanedSections, profile, extractedName);
       setResumeHtml(html);
     } catch (error) {
       console.error('❌ Error generating resume:', error);
@@ -212,11 +239,11 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
     }
     a {
       color: #3b82f6;
-      text-decoration: none;
+      text-decoration: underline;
       font-weight: 600;
       transition: color 0.2s;
     }
-    a:hover { color: #2563eb; text-decoration: underline; }
+    a:hover { color: #2563eb; }
     .section { margin-bottom: 2em; }
     .subsection { margin-bottom: 1.2em; }
     .contact-links { margin-top: 0.6em; }
@@ -234,7 +261,7 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
       <address>
         ${contactInfo.links.length > 0 ? `<div class="contact-links">${contactInfo.links.join(' <span class="separator">•</span> ')}</div>` : ''}
         ${contactInfo.email || contactInfo.phone ? `<div style="margin-top: 0.5em;">
-          ${contactInfo.email || ''}${contactInfo.email && contactInfo.phone ? ' <span class="separator">•</span> ' : ''}${contactInfo.phone || ''}
+          ${contactInfo.email ? `<a href="mailto:${contactInfo.email.replace(/<[^>]*>/g, '')}">${contactInfo.email.replace(/<[^>]*>/g, '')}</a>` : ''}${contactInfo.email && contactInfo.phone ? ' <span class="separator">•</span> ' : ''}${contactInfo.phone || ''}
         </div>` : ''}
       </address>
     </header>
@@ -260,7 +287,6 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
           const title = subsection.title?.toLowerCase() || '';
           const data = subsection.data || [];
 
-          // Try to get name from subsection title
           if (subsection.title && !info.name) {
             const titleWords = subsection.title.split(' ');
             if (titleWords.length >= 2 && titleWords.length <= 4) {
@@ -286,7 +312,7 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
               const match = item.match(/(https?:\/\/github\.com\/[^\s)]+|github\.com\/[^\s)]+)/i);
               if (match) {
                 const url = match[1].startsWith('http') ? match[1] : `https://${match[1]}`;
-                info.links.push(`<a href="${url}">GitHub</a>`);
+                info.links.push(`<a href="${url}" target="_blank" rel="noopener noreferrer">GitHub</a>`);
               }
             }
 
@@ -294,7 +320,7 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
               const match = item.match(/(https?:\/\/(?:www\.)?linkedin\.com\/[^\s)]+|linkedin\.com\/[^\s)]+)/i);
               if (match) {
                 const url = match[1].startsWith('http') ? match[1] : `https://${match[1]}`;
-                info.links.push(`<a href="${url}">LinkedIn</a>`);
+                info.links.push(`<a href="${url}" target="_blank" rel="noopener noreferrer">LinkedIn</a>`);
               }
             }
 
@@ -304,7 +330,7 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
               const match = item.match(/(https?:\/\/[^\s)]+|www\.[^\s)]+)/i);
               if (match) {
                 const url = match[1].startsWith('http') ? match[1] : `https://${match[1]}`;
-                info.links.push(`<a href="${url}">Portfolio</a>`);
+                info.links.push(`<a href="${url}" target="_blank" rel="noopener noreferrer">Portfolio</a>`);
               }
             }
           });
@@ -340,10 +366,15 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
     const data = subsection.data || [];
     const sectionLower = sectionName.toLowerCase();
 
+    // Filter empty data
+    const validData = data.filter(item => item && item.trim());
+    if (validData.length === 0 && !title) return '';
+
     if (sectionLower.includes('skill') || sectionLower.includes('technical')) {
+      const dataWithLinks = validData.map(item => makeLinksClickable(item));
       return `
       <div class="subsection">
-        ${title ? `<p><strong>${title}:</strong> ${data.join(', ')}</p>` : `<p>${data.join(', ')}</p>`}
+        ${title ? `<p><strong>${makeLinksClickable(title)}:</strong> ${dataWithLinks.join(', ')}</p>` : `<p>${dataWithLinks.join(', ')}</p>`}
       </div>`;
     }
 
@@ -351,7 +382,7 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
       return `
       <div class="subsection">
         <ul>
-          ${title ? `<li><strong>${title}:</strong> ${data.join(' ')}</li>` : data.map(item => `<li>${item}</li>`).join('\n')}
+          ${title ? `<li><strong>${makeLinksClickable(title)}:</strong> ${validData.map(item => makeLinksClickable(item)).join(' ')}</li>` : validData.map(item => `<li>${makeLinksClickable(item)}</li>`).join('\n')}
         </ul>
       </div>`;
     }
@@ -359,9 +390,9 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
     if (sectionLower.includes('coursework') || sectionLower.includes('course')) {
       return `
       <div class="subsection">
-        ${title ? `<p><strong>${title}:</strong></p>` : ''}
+        ${title ? `<p><strong>${makeLinksClickable(title)}:</strong></p>` : ''}
         <ul>
-          ${data.map(item => `<li>${item}</li>`).join('\n')}
+          ${validData.map(item => `<li>${makeLinksClickable(item)}</li>`).join('\n')}
         </ul>
       </div>`;
     }
@@ -369,14 +400,14 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
     if (sectionLower.includes('education') || sectionLower.includes('experience') || sectionLower.includes('project') || sectionLower.includes('position')) {
       return `
       <div class="subsection">
-        ${title ? `<h3>${title}</h3>` : ''}
-        ${data.length > 0 ? `
-        ${data[0] && !data[0].startsWith('_•_') ? `<p>${data[0]}</p>` : ''}
-        ${data.filter(item => item.startsWith('_•_') || data.length > 1 && data.indexOf(item) > 0).length > 0 ? `
+        ${title ? `<h3>${makeLinksClickable(title)}</h3>` : ''}
+        ${validData.length > 0 ? `
+        ${validData[0] && !validData[0].startsWith('_•_') ? `<p>${makeLinksClickable(validData[0])}</p>` : ''}
+        ${validData.filter(item => item.startsWith('_•_') || validData.length > 1 && validData.indexOf(item) > 0).length > 0 ? `
         <ul class="subsection-data">
-          ${data.filter(item => item.startsWith('_•_') || (data.length > 1 && data.indexOf(item) > 0 && !data[0].startsWith('_•_'))).map(item => {
+          ${validData.filter(item => item.startsWith('_•_') || (validData.length > 1 && validData.indexOf(item) > 0 && !validData[0].startsWith('_•_'))).map(item => {
             const cleanItem = item.replace(/^_•_\s*/, '');
-            return `<li>${cleanItem}</li>`;
+            return `<li>${makeLinksClickable(cleanItem)}</li>`;
           }).join('\n')}
         </ul>` : ''}` : ''}
       </div>`;
@@ -384,10 +415,10 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
 
     return `
       <div class="subsection">
-        ${title ? `<h3>${title}</h3>` : ''}
-        ${data.length > 0 ? `
+        ${title ? `<h3>${makeLinksClickable(title)}</h3>` : ''}
+        ${validData.length > 0 ? `
         <ul class="subsection-data">
-          ${data.map(item => `<li>${item}</li>`).join('\n')}
+          ${validData.map(item => `<li>${makeLinksClickable(item)}</li>`).join('\n')}
         </ul>` : ''}
       </div>`;
   };
@@ -434,7 +465,6 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
   const apiUrl = getApiUrl();
   const sharableUrl = `${apiUrl}${resumeData.sharable_link}`;
 
-  // Use displayName if available, otherwise fallback to metadata
   const headerName = displayName || metadata.name || 'Your Resume';
 
   return (

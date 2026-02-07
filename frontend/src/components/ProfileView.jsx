@@ -1,4 +1,4 @@
-// src/components/ProfileView.jsx - Updated with mini tabs
+// src/components/ProfileView.jsx - Updated with grouped skills display
 import { useState } from 'react';
 import ContentFormatter from './ContentFormatter';
 import { cleanText } from '../utils/textCleaner';
@@ -42,25 +42,36 @@ const ProfileView = ({ profileData, onEditProfile, onEditRoles }) => {
     return '📋';
   };
 
+  // Filter sections with data
+  const filterSectionsWithData = (sections) => {
+    return sections.filter(section => {
+      const subsections = section.subsections || [];
+      return subsections.some(sub => {
+        const data = sub.data || [];
+        return data.length > 0 && data.some(item => item && item.trim());
+      });
+    });
+  };
+
   // Categorize sections
   const categorizedSections = {
-    contact: sections.filter(s => {
+    contact: filterSectionsWithData(sections.filter(s => {
       const name = s.section_name.toLowerCase();
       return name.includes('contact') || name.includes('personal');
-    }),
-    experience: sections.filter(s => {
+    })),
+    experience: filterSectionsWithData(sections.filter(s => {
       const name = s.section_name.toLowerCase();
       return name.includes('experience') || name.includes('work') || name.includes('position');
-    }),
-    education: sections.filter(s => {
+    })),
+    education: filterSectionsWithData(sections.filter(s => {
       const name = s.section_name.toLowerCase();
       return name.includes('education') || name.includes('academic');
-    }),
-    skills: sections.filter(s => {
+    })),
+    skills: filterSectionsWithData(sections.filter(s => {
       const name = s.section_name.toLowerCase();
       return name.includes('skill') || name.includes('technical') || name.includes('competenc');
-    }),
-    other: sections.filter(s => {
+    })),
+    other: filterSectionsWithData(sections.filter(s => {
       const name = s.section_name.toLowerCase();
       return !name.includes('contact') && 
              !name.includes('personal') && 
@@ -72,7 +83,7 @@ const ProfileView = ({ profileData, onEditProfile, onEditRoles }) => {
              !name.includes('skill') && 
              !name.includes('technical') && 
              !name.includes('competenc');
-    })
+    }))
   };
 
   const subTabs = [
@@ -105,6 +116,153 @@ const ProfileView = ({ profileData, onEditProfile, onEditRoles }) => {
     ), count: categorizedSections.other.length }
   ];
 
+  const renderSkillsSection = (section) => {
+    const cleanedSectionName = cleanText(section.section_name, 'section');
+    if (!cleanedSectionName) return null;
+
+    const subsections = section.subsections || [];
+    // Filter subsections with data
+    const validSubsections = subsections.filter(sub => {
+      const data = sub.data || [];
+      return data.length > 0 && data.some(item => item && item.trim());
+    });
+
+    if (validSubsections.length === 0) return null;
+
+    return (
+      <div key={section.section_name} className="card-elevated hover-lift overflow-hidden mb-6">
+        {/* Section Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-teal-600 p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl">
+              {getSectionIcon(cleanedSectionName)}
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-white">
+                {cleanedSectionName}
+              </h2>
+              <p className="text-blue-100 text-sm mt-1">
+                {validSubsections.length} {validSubsections.length === 1 ? 'category' : 'categories'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Skills Content - Grouped */}
+        <div className="p-6">
+          <div className="space-y-4">
+            {validSubsections.map((subsection, subIndex) => {
+              const cleanedTitle = cleanText(subsection.title, 'subsection');
+              const data = subsection.data || [];
+              const cleanedData = data.filter(item => item && item.trim()).map(item => cleanText(item, 'bullet'));
+
+              if (cleanedData.length === 0) return null;
+
+              return (
+                <div key={subIndex} className="bg-gray-50 rounded-lg p-4 hover:bg-blue-50 transition-all">
+                  {cleanedTitle && cleanedTitle.trim() !== '' && (
+                    <h3 className="text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">
+                      {cleanedTitle}
+                    </h3>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {cleanedData.map((item, dataIndex) => (
+                      <span
+                        key={dataIndex}
+                        className="inline-flex items-center px-3 py-1.5 bg-white border border-blue-200 text-gray-700 text-sm rounded-lg hover:bg-blue-100 hover:border-blue-300 transition-all"
+                      >
+                        <ContentFormatter text={item} />
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const renderRegularSection = (section) => {
+    const cleanedSectionName = cleanText(section.section_name, 'section');
+    if (!cleanedSectionName) return null;
+
+    const subsections = section.subsections || [];
+    // Filter subsections with data
+    const validSubsections = subsections.filter(sub => {
+      const data = sub.data || [];
+      return data.length > 0 && data.some(item => item && item.trim());
+    });
+
+    if (validSubsections.length === 0) return null;
+
+    return (
+      <div key={section.section_name} className="card-elevated hover-lift overflow-hidden mb-6">
+        {/* Section Header */}
+        <div className="bg-gradient-to-r from-blue-600 to-teal-600 p-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl">
+              {getSectionIcon(cleanedSectionName)}
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-bold text-white">
+                {cleanedSectionName}
+              </h2>
+              <p className="text-blue-100 text-sm mt-1">
+                {validSubsections.length} {validSubsections.length === 1 ? 'entry' : 'entries'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Section Content */}
+        <div className="p-6">
+          <div className="space-y-6">
+            {validSubsections.map((subsection, subIndex) => {
+              const cleanedTitle = cleanText(subsection.title, 'subsection');
+              const data = subsection.data || [];
+              const cleanedData = data.filter(item => item && item.trim()).map(item => cleanText(item, 'bullet'));
+
+              if (cleanedData.length === 0 && !cleanedTitle) return null;
+
+              return (
+                <div key={subIndex} className="group">
+                  {/* Subsection Title */}
+                  {cleanedTitle && cleanedTitle.trim() !== '' && (
+                    <div className="flex items-start gap-3 mb-3">
+                      <div className="w-1 h-full bg-gradient-to-b from-blue-500 to-teal-500 rounded-full"></div>
+                      <h3 className="text-lg font-bold text-gray-900 flex-1">
+                        {cleanedTitle}
+                      </h3>
+                    </div>
+                  )}
+
+                  {/* Subsection Data */}
+                  {cleanedData.length > 0 && (
+                    <div className="space-y-2 ml-6">
+                      {cleanedData.map((item, dataIndex) => (
+                        <div 
+                          key={dataIndex} 
+                          className="flex items-start gap-3 group/item hover:bg-blue-50 p-3 rounded-lg transition-all"
+                        >
+                          <div className="w-1.5 h-1.5 mt-2 rounded-full bg-blue-600 flex-shrink-0"></div>
+                          <div className="flex-1 text-gray-700 leading-relaxed">
+                            <ContentFormatter text={item} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderSections = (sectionsToRender) => {
     if (!sectionsToRender || sectionsToRender.length === 0) {
       return (
@@ -119,93 +277,15 @@ const ProfileView = ({ profileData, onEditProfile, onEditRoles }) => {
       );
     }
 
-    return sectionsToRender.map((section, sectionIndex) => {
-      const cleanedSectionName = cleanText(section.section_name, 'section');
+    return sectionsToRender.map((section) => {
+      const sectionName = section.section_name?.toLowerCase() || '';
       
-      if (!cleanedSectionName) return null;
-
-      return (
-        <div 
-          key={sectionIndex} 
-          className="card-elevated hover-lift overflow-hidden mb-6"
-        >
-          {/* Section Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-teal-600 p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl">
-                {getSectionIcon(cleanedSectionName)}
-              </div>
-              <div className="flex-1">
-                <h2 className="text-xl font-bold text-white">
-                  {cleanedSectionName}
-                </h2>
-                <p className="text-blue-100 text-sm mt-1">
-                  {section.subsections?.length || 0} {section.subsections?.length === 1 ? 'entry' : 'entries'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Section Content */}
-          <div className="p-6">
-            {section.subsections && section.subsections.length > 0 ? (
-              <div className="space-y-6">
-                {section.subsections.map((subsection, subIndex) => {
-                  const cleanedTitle = cleanText(subsection.title, 'subsection');
-
-                  return (
-                    <div key={subIndex} className="group">
-                      {/* Subsection Title */}
-                      {cleanedTitle && cleanedTitle.trim() !== '' && (
-                        <div className="flex items-start gap-3 mb-3">
-                          <div className="w-1 h-full bg-gradient-to-b from-blue-500 to-teal-500 rounded-full"></div>
-                          <h3 className="text-lg font-bold text-gray-900 flex-1">
-                            {cleanedTitle}
-                          </h3>
-                        </div>
-                      )}
-
-                      {/* Subsection Data */}
-                      {subsection.data && subsection.data.length > 0 ? (
-                        <div className="space-y-2 ml-6">
-                          {subsection.data.map((item, dataIndex) => {
-                            const cleanedItem = cleanText(item, 'bullet');
-                            
-                            if (!cleanedItem || cleanedItem === 'NA') return null;
-                            
-                            return (
-                              <div 
-                                key={dataIndex} 
-                                className="flex items-start gap-3 group/item hover:bg-blue-50 p-3 rounded-lg transition-all"
-                              >
-                                <div className="w-1.5 h-1.5 mt-2 rounded-full bg-blue-600 flex-shrink-0"></div>
-                                <div className="flex-1 text-gray-700 leading-relaxed">
-                                  <ContentFormatter text={cleanedItem} />
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <p className="text-gray-500 italic ml-6">No data available</p>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-12">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 flex items-center justify-center">
-                  <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                  </svg>
-                </div>
-                <p className="text-gray-500">No information available in this section</p>
-              </div>
-            )}
-          </div>
-        </div>
-      );
+      // Check if this is a skills section
+      if (sectionName.includes('skill') || sectionName.includes('technical')) {
+        return renderSkillsSection(section);
+      } else {
+        return renderRegularSection(section);
+      }
     });
   };
 
@@ -269,89 +349,15 @@ const ProfileView = ({ profileData, onEditProfile, onEditRoles }) => {
           {/* Overview Tab */}
           {activeSubTab === 'overview' && (
             <div className="space-y-6">
-              {sections.map((section, sectionIndex) => {
-                const cleanedSectionName = cleanText(section.section_name, 'section');
+              {filterSectionsWithData(sections).map((section) => {
+                const sectionName = section.section_name?.toLowerCase() || '';
                 
-                if (!cleanedSectionName) return null;
-
-                return (
-                  <div 
-                    key={sectionIndex} 
-                    className="card hover-lift overflow-hidden"
-                  >
-                    <div className="bg-gradient-to-r from-blue-600 to-teal-600 p-6">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center text-2xl">
-                          {getSectionIcon(cleanedSectionName)}
-                        </div>
-                        <div className="flex-1">
-                          <h2 className="text-xl font-bold text-white">
-                            {cleanedSectionName}
-                          </h2>
-                          <p className="text-blue-100 text-sm mt-1">
-                            {section.subsections?.length || 0} {section.subsections?.length === 1 ? 'entry' : 'entries'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-6">
-                      {section.subsections && section.subsections.length > 0 ? (
-                        <div className="space-y-6">
-                          {section.subsections.map((subsection, subIndex) => {
-                            const cleanedTitle = cleanText(subsection.title, 'subsection');
-
-                            return (
-                              <div key={subIndex} className="group">
-                                {cleanedTitle && cleanedTitle.trim() !== '' && (
-                                  <div className="flex items-start gap-3 mb-3">
-                                    <div className="w-1 h-full bg-gradient-to-b from-blue-500 to-teal-500 rounded-full"></div>
-                                    <h3 className="text-lg font-bold text-gray-900 flex-1">
-                                      {cleanedTitle}
-                                    </h3>
-                                  </div>
-                                )}
-
-                                {subsection.data && subsection.data.length > 0 ? (
-                                  <div className="space-y-2 ml-6">
-                                    {subsection.data.map((item, dataIndex) => {
-                                      const cleanedItem = cleanText(item, 'bullet');
-                                      
-                                      if (!cleanedItem || cleanedItem === 'NA') return null;
-                                      
-                                      return (
-                                        <div 
-                                          key={dataIndex} 
-                                          className="flex items-start gap-3 group/item hover:bg-blue-50 p-3 rounded-lg transition-all"
-                                        >
-                                          <div className="w-1.5 h-1.5 mt-2 rounded-full bg-blue-600 flex-shrink-0"></div>
-                                          <div className="flex-1 text-gray-700 leading-relaxed">
-                                            <ContentFormatter text={cleanedItem} />
-                                          </div>
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                ) : (
-                                  <p className="text-gray-500 italic ml-6">No data available</p>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      ) : (
-                        <div className="text-center py-12">
-                          <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-gray-100 flex items-center justify-center">
-                            <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                            </svg>
-                          </div>
-                          <p className="text-gray-500">No information available in this section</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
+                // Render skills sections differently
+                if (sectionName.includes('skill') || sectionName.includes('technical')) {
+                  return renderSkillsSection(section);
+                } else {
+                  return renderRegularSection(section);
+                }
               })}
             </div>
           )}

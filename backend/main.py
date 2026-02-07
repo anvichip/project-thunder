@@ -1,4 +1,4 @@
-# main.py - COMPLETE FIXED VERSION
+# main.py - UPDATED VERSION with empty array filtering
 from fastapi import FastAPI, UploadFile, File, HTTPException, Depends, status, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, HTMLResponse, Response
@@ -16,6 +16,7 @@ from dotenv import load_dotenv
 from bson import ObjectId
 import secrets
 import hashlib
+import re
 
 # Import resume parser with explicit output path
 from parser.resume_parser_llm import main as parse_resume_llm
@@ -142,12 +143,47 @@ def generate_unique_resume_id(email: str) -> str:
     hash_obj = hashlib.sha256(unique_string.encode())
     return hash_obj.hexdigest()[:16]
 
+def make_links_clickable(text: str) -> str:
+    """Convert URLs in text to clickable HTML links"""
+    # URL regex pattern
+    url_pattern = r'(https?://[^\s<>"]+|www\.[^\s<>"]+)'
+    
+    def replace_url(match):
+        url = match.group(1)
+        # Add https:// if it starts with www.
+        full_url = url if url.startswith('http') else f'https://{url}'
+        return f'<a href="{full_url}" target="_blank" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: underline;">{url}</a>'
+    
+    return re.sub(url_pattern, replace_url, text)
+
+def clean_empty_sections(sections: list) -> list:
+    """Remove sections and subsections with empty data arrays"""
+    cleaned_sections = []
+    
+    for section in sections:
+        subsections = section.get('subsections', [])
+        
+        # Filter out subsections with empty data
+        cleaned_subsections = []
+        for subsection in subsections:
+            data = subsection.get('data', [])
+            # Only keep subsections with non-empty data
+            if data and len(data) > 0 and any(item.strip() for item in data if item):
+                cleaned_subsections.append(subsection)
+        
+        # Only add section if it has valid subsections
+        if cleaned_subsections:
+            section_copy = section.copy()
+            section_copy['subsections'] = cleaned_subsections
+            cleaned_sections.append(section_copy)
+    
+    return cleaned_sections
+
 async def migrate_existing_resumes():
     """Add resume_id and sharable_link to existing resumes that don't have them"""
     try:
         print("🔄 Checking for resumes needing migration...")
         
-        # Find resumes without resume_id
         resumes_without_id = await resumes_collection.find({"resume_id": {"$exists": False}}).to_list(None)
         
         if resumes_without_id:
@@ -187,7 +223,6 @@ async def startup_db_client():
         await templates_collection.create_index("user_email")
         await resumes_collection.create_index("user_email")
         
-        # Create index without unique constraint to allow migration
         try:
             await resumes_collection.create_index("resume_id", unique=True, sparse=True)
         except Exception as e:
@@ -195,7 +230,6 @@ async def startup_db_client():
         
         print("✅ Database indexes created")
         
-        # Migrate existing resumes
         await migrate_existing_resumes()
         
     except Exception as e:
@@ -435,6 +469,9 @@ async def upload_resume(
         if 'sections' not in extracted_data or not isinstance(extracted_data['sections'], list):
             raise HTTPException(status_code=500, detail="Invalid parsing result structure")
         
+        # Clean empty sections before saving
+        extracted_data['sections'] = clean_empty_sections(extracted_data['sections'])
+        
         template_id = None
         if original_html_template:
             template_doc = {
@@ -483,32 +520,25 @@ async def upload_resume(
             except Exception as e:
                 print(f"⚠️ Failed to clean up JSON file: {e}")
 
-
-# Add these debug endpoints to main.py
-
 @app.post("/api/debug/regenerate-resume/{email}")
 async def debug_regenerate_resume(email: str):
     """Debug endpoint to manually regenerate resume"""
     try:
         print(f"🔧 DEBUG: Manually regenerating resume for: {email}")
         
-        # Check if profile exists
         profile = await profiles_collection.find_one({"email": email})
         if not profile:
             raise HTTPException(status_code=404, detail="Profile not found")
         
-        # Check if template exists
         template = await templates_collection.find_one({"user_email": email})
         if not template:
             raise HTTPException(status_code=404, detail="Template not found - please re-upload resume")
         
-        # Generate resume
         resume_info = await generate_user_resume(email)
         
         if not resume_info:
             raise HTTPException(status_code=500, detail="Failed to generate resume")
         
-        # Verify HTML was stored
         resume = await resumes_collection.find_one({"user_email": email})
         
         debug_info = {
@@ -534,7 +564,6 @@ async def debug_regenerate_resume(email: str):
         import traceback
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
-
 
 @app.get("/api/debug/check-resume/{email}")
 async def debug_check_resume(email: str):
@@ -569,6 +598,10 @@ async def debug_check_resume(email: str):
 async def save_user_profile(request: SaveProfileRequest):
     try:
         print(f"💾 Saving profile for: {request.email}")
+        
+        # Clean empty sections before saving
+        cleaned_sections = clean_empty_sections(request.resumeData.get('sections', []))
+        request.resumeData['sections'] = cleaned_sections
         
         profile_data = {
             "email": request.email,
@@ -619,6 +652,10 @@ async def generate_user_resume(email: str):
             print(f"⚠️ No profile found for: {email}")
             return None
         
+        # Clean empty sections from profile data
+        profile_data = profile.get('resumeData', {})
+        profile_data['sections'] = clean_empty_sections(profile_data.get('sections', []))
+        
         template = await templates_collection.find_one({
             "user_email": email,
             "is_default": True
@@ -631,22 +668,17 @@ async def generate_user_resume(email: str):
             print(f"⚠️ No template found for: {email}")
             return None
         
-        # Import the template filler
         from template_filler_smart import fill_template_preserving_design
         
-        # Generate filled HTML
         filled_html = fill_template_preserving_design(
             template['html_template'],
-            profile['resumeData']
+            profile_data
         )
         
-        # Validate HTML was generated
         if not filled_html or len(filled_html) < 100:
             print(f"⚠️ Generated HTML is too short or empty")
-            # Try to generate basic HTML fallback
-            filled_html = generate_basic_html_resume(profile['resumeData'])
+            filled_html = generate_basic_html_resume(profile_data)
         
-        # Get or generate resume ID
         existing_resume = await resumes_collection.find_one({"user_email": email})
         
         if existing_resume and existing_resume.get("resume_id"):
@@ -656,14 +688,14 @@ async def generate_user_resume(email: str):
             resume_id = generate_unique_resume_id(email)
             sharable_link = f"/resume/{resume_id}"
         
-        resume_metadata = extract_resume_metadata(profile['resumeData'])
+        resume_metadata = extract_resume_metadata(profile_data)
         
         resume_doc = {
             "user_email": email,
             "resume_id": resume_id,
             "template_id": str(template['_id']),
-            "html_content": filled_html,  # CRITICAL: Store HTML content
-            "profile_data": profile['resumeData'],
+            "html_content": filled_html,
+            "profile_data": profile_data,
             "sharable_link": sharable_link,
             "metadata": resume_metadata,
             "created_at": datetime.utcnow(),
@@ -694,7 +726,7 @@ async def generate_user_resume(email: str):
         return None
 
 def extract_resume_metadata(resume_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Extract metadata for resume tile display - IMPROVED VERSION"""
+    """Extract metadata for resume tile display"""
     import re
     
     metadata = {
@@ -709,7 +741,6 @@ def extract_resume_metadata(resume_data: Dict[str, Any]) -> Dict[str, Any]:
     sections = resume_data.get('sections', [])
     metadata["sections_count"] = len(sections)
     
-    # First pass: Extract name from contact/personal information section
     for section in sections:
         section_name = section.get('section_name', '').lower()
         subsections = section.get('subsections', [])
@@ -719,20 +750,16 @@ def extract_resume_metadata(resume_data: Dict[str, Any]) -> Dict[str, Any]:
                 data = subsection.get('data', [])
                 title = subsection.get('title', '').strip()
                 
-                # Check if subsection title is the name (typically 2-4 words with capitals)
                 if title and not metadata['name']:
                     title_words = title.split()
                     if 2 <= len(title_words) <= 4:
-                        # Check if most words start with capital letter
                         has_capitals = sum(1 for word in title_words if word and word[0].isupper()) >= len(title_words) / 2
-                        # Exclude common field names
                         is_field_name = any(keyword in title.lower() for keyword in ['email', 'phone', 'address', 'location', 'linkedin', 'github'])
                         
                         if has_capitals and not is_field_name:
                             metadata['name'] = title
                             print(f"📝 Extracted name from title: {title}")
                 
-                # Also check first data item if it looks like a name
                 if not metadata['name'] and data and len(data) > 0:
                     first_item = data[0].strip()
                     if first_item and '@' not in first_item and 'http' not in first_item.lower():
@@ -743,20 +770,17 @@ def extract_resume_metadata(resume_data: Dict[str, Any]) -> Dict[str, Any]:
                                 metadata['name'] = first_item
                                 print(f"📝 Extracted name from data: {first_item}")
                 
-                # Extract email
                 for item in data:
                     if '@' in item and not metadata['email']:
                         email_match = re.search(r'([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})', item)
                         if email_match:
                             metadata['email'] = email_match.group(1)
                     
-                    # Extract phone
                     if not metadata['phone']:
                         phone_match = re.search(r'(\+?\d{1,3}[-.\s]?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9})', item)
                         if phone_match:
                             metadata['phone'] = phone_match.group(1)
         
-        # Extract job title from experience section
         if not metadata['title'] and 'experience' in section_name and subsections:
             first_subsection = subsections[0]
             title = first_subsection.get('title', '')
@@ -845,20 +869,17 @@ async def get_user_resume(email: str):
         )
 
 def generate_html_from_profile_data(profile_data: dict, metadata: dict) -> str:
-    """
-    Generate clean HTML from profile JSON data - IMPROVED VERSION
-    """
+    """Generate clean HTML from profile JSON data with clickable links"""
     sections = profile_data.get('sections', [])
     
-    # Extract contact info from sections
+    # Clean empty sections
+    sections = clean_empty_sections(sections)
+    
     contact_info = extract_contact_from_sections(sections)
     
-    # Get name - priority: contact_info > metadata > default
     name = contact_info.get('name') or metadata.get('name') or 'Resume'
     
     print(f"🎨 Generating HTML for: {name}")
-    print(f"   Contact info: {contact_info}")
-    print(f"   Metadata: {metadata}")
     
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -951,12 +972,12 @@ def generate_html_from_profile_data(profile_data: dict, metadata: dict) -> str:
 
     a {{
       color: #3b82f6;
-      text-decoration: none;
+      text-decoration: underline;
       font-weight: 600;
       transition: color 0.2s;
     }}
 
-    a:hover {{ color: #2563eb; text-decoration: underline; }}
+    a:hover {{ color: #2563eb; }}
 
     .section {{ margin-bottom: 2em; }}
     .subsection {{ margin-bottom: 1.2em; }}
@@ -977,17 +998,15 @@ def generate_html_from_profile_data(profile_data: dict, metadata: dict) -> str:
       <address>
 """
     
-    # Add contact links
     if contact_info.get('links'):
         html += f"        <div class=\"contact-links\">{' <span class=\"separator\">•</span> '.join(contact_info['links'])}</div>\n"
     
-    # Add email and phone
     contact_line = []
     email = contact_info.get('email') or metadata.get('email')
     phone = contact_info.get('phone') or metadata.get('phone')
     
     if email:
-        contact_line.append(email)
+        contact_line.append(f'<a href="mailto:{email}">{email}</a>')
     if phone:
         contact_line.append(phone)
     
@@ -999,11 +1018,9 @@ def generate_html_from_profile_data(profile_data: dict, metadata: dict) -> str:
 
 """
     
-    # Generate sections
     for section in sections:
         section_name = section.get('section_name', '').lower()
         
-        # Skip contact section
         if any(keyword in section_name for keyword in ['contact', 'personal information', 'name']):
             continue
         
@@ -1022,9 +1039,8 @@ def generate_html_from_profile_data(profile_data: dict, metadata: dict) -> str:
     
     return html
 
-
 def extract_contact_from_sections(sections: list) -> dict:
-    """Extract contact information from sections - IMPROVED VERSION"""
+    """Extract contact information from sections"""
     import re
     
     info = {
@@ -1042,7 +1058,6 @@ def extract_contact_from_sections(sections: list) -> dict:
                 title = subsection.get('title', '').strip()
                 data = subsection.get('data', [])
                 
-                # Try to extract name from title
                 if title and not info['name']:
                     title_words = title.split()
                     if 2 <= len(title_words) <= 4:
@@ -1050,9 +1065,7 @@ def extract_contact_from_sections(sections: list) -> dict:
                         is_field_name = any(keyword in title.lower() for keyword in ['email', 'phone', 'address', 'location', 'linkedin', 'github'])
                         if has_capitals and not is_field_name:
                             info['name'] = title
-                            print(f"📛 Extracted name for HTML: {title}")
                 
-                # Try to extract name from first data item
                 if not info['name'] and data and len(data) > 0:
                     first_item = data[0].strip()
                     if first_item and '@' not in first_item and 'http' not in first_item.lower():
@@ -1061,47 +1074,42 @@ def extract_contact_from_sections(sections: list) -> dict:
                             has_capitals = sum(1 for word in words if word and word[0].isupper()) >= len(words) / 2
                             if has_capitals:
                                 info['name'] = first_item
-                                print(f"📛 Extracted name from data for HTML: {first_item}")
                 
                 for item in data:
-                    # Extract email
                     if '@' in item and not info['email']:
                         email_match = re.search(r'([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})', item)
                         if email_match:
                             info['email'] = email_match.group(1)
                     
-                    # Extract phone
                     if not info['phone'] and re.search(r'[\d\+\-\(\)\s]{8,}', item):
                         phone_match = re.search(r'(\+?\d{1,3}[-.\s]?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9})', item)
                         if phone_match:
                             info['phone'] = phone_match.group(1)
                     
-                    # Extract GitHub
                     if 'github' in item.lower() or 'github.com' in item:
                         match = re.search(r'(https?://github\.com/[^\s)]+|github\.com/[^\s)]+)', item, re.IGNORECASE)
                         if match:
                             url = match.group(1) if match.group(1).startswith('http') else f'https://{match.group(1)}'
-                            if f'<a href="{url}">GitHub</a>' not in info['links']:
-                                info['links'].append(f'<a href="{url}">GitHub</a>')
+                            link = f'<a href="{url}" target="_blank" rel="noopener noreferrer">GitHub</a>'
+                            if link not in info['links']:
+                                info['links'].append(link)
                     
-                    # Extract LinkedIn
                     if 'linkedin' in item.lower() or 'linkedin.com' in item:
                         match = re.search(r'(https?://(?:www\.)?linkedin\.com/[^\s)]+|linkedin\.com/[^\s)]+)', item, re.IGNORECASE)
                         if match:
                             url = match.group(1) if match.group(1).startswith('http') else f'https://{match.group(1)}'
-                            if f'<a href="{url}">LinkedIn</a>' not in info['links']:
-                                info['links'].append(f'<a href="{url}">LinkedIn</a>')
+                            link = f'<a href="{url}" target="_blank" rel="noopener noreferrer">LinkedIn</a>'
+                            if link not in info['links']:
+                                info['links'].append(link)
                     
-                    # Extract Portfolio
                     if ('http' in item or 'www.' in item) and 'github' not in item.lower() and 'linkedin' not in item.lower():
                         match = re.search(r'(https?://[^\s)]+|www\.[^\s)]+)', item, re.IGNORECASE)
                         if match:
                             url = match.group(1) if match.group(1).startswith('http') else f'https://{match.group(1)}'
-                            portfolio_link = f'<a href="{url}">Portfolio</a>'
+                            portfolio_link = f'<a href="{url}" target="_blank" rel="noopener noreferrer">Portfolio</a>'
                             if portfolio_link not in info['links']:
                                 info['links'].append(portfolio_link)
     
-    # Remove duplicates while preserving order
     seen = set()
     unique_links = []
     for link in info['links']:
@@ -1110,86 +1118,82 @@ def extract_contact_from_sections(sections: list) -> dict:
             unique_links.append(link)
     info['links'] = unique_links
     
-    print(f"📧 Contact info extracted: name='{info['name']}', email='{info['email']}', phone='{info['phone']}', links={len(info['links'])}")
     return info
 
-
 def generate_subsection_html(subsection: dict, section_name: str) -> str:
-    """Generate HTML for a subsection"""
+    """Generate HTML for a subsection with clickable links"""
     title = subsection.get('title', '')
     data = subsection.get('data', [])
     section_lower = section_name.lower()
+    
+    # Filter out empty data
+    data = [item for item in data if item and item.strip()]
+    
+    if not data:
+        return ""
     
     html = "      <div class=\"subsection\">\n"
     
     # Skills section - inline
     if 'skill' in section_lower or 'technical' in section_lower:
+        data_with_links = [make_links_clickable(item) for item in data]
         if title:
-            html += f"        <p><strong>{title}:</strong> {', '.join(data)}</p>\n"
+            html += f"        <p><strong>{make_links_clickable(title)}:</strong> {', '.join(data_with_links)}</p>\n"
         else:
-            html += f"        <p>{', '.join(data)}</p>\n"
+            html += f"        <p>{', '.join(data_with_links)}</p>\n"
     
-    # Achievements/Awards - list
     elif 'achievement' in section_lower or 'award' in section_lower:
         html += "        <ul>\n"
         if title:
-            html += f"          <li><strong>{title}:</strong> {' '.join(data)}</li>\n"
+            data_text = ' '.join([make_links_clickable(item) for item in data])
+            html += f"          <li><strong>{make_links_clickable(title)}:</strong> {data_text}</li>\n"
         else:
             for item in data:
-                if item.strip():
-                    html += f"          <li>{item}</li>\n"
+                html += f"          <li>{make_links_clickable(item)}</li>\n"
         html += "        </ul>\n"
     
-    # Coursework - structured list
     elif 'coursework' in section_lower or 'course' in section_lower:
         if title:
-            html += f"        <p><strong>{title}:</strong></p>\n"
+            html += f"        <p><strong>{make_links_clickable(title)}:</strong></p>\n"
         html += "        <ul>\n"
         for item in data:
-            if item.strip():
-                html += f"          <li>{item}</li>\n"
+            html += f"          <li>{make_links_clickable(item)}</li>\n"
         html += "        </ul>\n"
     
-    # Experience/Education/Projects/Positions - structured
     elif any(keyword in section_lower for keyword in ['experience', 'education', 'project', 'position', 'responsibility']):
         if title:
-            html += f"        <h3>{title}</h3>\n"
+            html += f"        <h3>{make_links_clickable(title)}</h3>\n"
         
-        # First item might be date/location
         if data:
             first_item = data[0] if data else ''
             bullet_items = [item for item in data if item.startswith('_•_') or (len(data) > 1 and data.index(item) > 0 and not first_item.startswith('_•_'))]
             
             if first_item and not first_item.startswith('_•_'):
-                html += f"        <p>{first_item}</p>\n"
+                html += f"        <p>{make_links_clickable(first_item)}</p>\n"
             
             if bullet_items:
                 html += "        <ul>\n"
                 for item in bullet_items:
                     clean_item = item.replace('_•_', '').strip()
                     if clean_item:
-                        html += f"          <li>{clean_item}</li>\n"
+                        html += f"          <li>{make_links_clickable(clean_item)}</li>\n"
                 html += "        </ul>\n"
     
-    # Default format
     else:
         if title:
-            html += f"        <h3>{title}</h3>\n"
+            html += f"        <h3>{make_links_clickable(title)}</h3>\n"
         if data:
             html += "        <ul>\n"
             for item in data:
-                if item.strip():
-                    html += f"          <li>{item}</li>\n"
+                html += f"          <li>{make_links_clickable(item)}</li>\n"
             html += "        </ul>\n"
     
     html += "      </div>\n"
     return html
 
-
-# NOW UPDATE THE ENDPOINT
 @app.get("/resume/{resume_id}", response_class=HTMLResponse)
 async def view_sharable_resume(resume_id: str):
-    """Public endpoint to view resume via sharable link - CLEAN VIEW"""
+    """Public endpoint to view resume via sharable link"""
     try:
         print(f"👁️ Viewing sharable resume: {resume_id}")
         
@@ -1237,7 +1241,6 @@ async def view_sharable_resume(resume_id: str):
                 status_code=404
             )
         
-        # Increment view count
         await resumes_collection.update_one(
             {"resume_id": resume_id},
             {"$inc": {"view_count": 1}}
@@ -1245,7 +1248,6 @@ async def view_sharable_resume(resume_id: str):
         
         print(f"✅ Serving resume (view #{resume.get('view_count', 0) + 1})")
         
-        # Generate clean HTML from profile_data
         profile_data = resume.get('profile_data', {})
         metadata = resume.get('metadata', {})
         
@@ -1297,95 +1299,9 @@ async def view_sharable_resume(resume_id: str):
             status_code=500
         )
 
-# Also update the generate_user_resume function to ensure HTML is properly generated
-async def generate_user_resume(email: str):
-    """Generate HTML resume with EXACT match and create sharable link"""
-    try:
-        print(f"🎨 Generating resume for: {email}")
-        
-        profile = await profiles_collection.find_one({"email": email})
-        if not profile:
-            print(f"⚠️ No profile found for: {email}")
-            return None
-        
-        template = await templates_collection.find_one({
-            "user_email": email,
-            "is_default": True
-        })
-        
-        if not template:
-            template = await templates_collection.find_one({"user_email": email})
-        
-        if not template:
-            print(f"⚠️ No template found for: {email}")
-            return None
-        
-        # Import the template filler
-        from template_filler_smart import fill_template_preserving_design
-        
-        # Generate filled HTML
-        filled_html = fill_template_preserving_design(
-            template['html_template'],
-            profile['resumeData']
-        )
-        
-        # Validate HTML was generated
-        if not filled_html or len(filled_html) < 100:
-            print(f"⚠️ Generated HTML is too short or empty")
-            # Try to generate basic HTML fallback
-            filled_html = generate_basic_html_resume(profile['resumeData'])
-        
-        # Get or generate resume ID
-        existing_resume = await resumes_collection.find_one({"user_email": email})
-        
-        if existing_resume and existing_resume.get("resume_id"):
-            resume_id = existing_resume["resume_id"]
-            sharable_link = existing_resume["sharable_link"]
-        else:
-            resume_id = generate_unique_resume_id(email)
-            sharable_link = f"/resume/{resume_id}"
-        
-        resume_metadata = extract_resume_metadata(profile['resumeData'])
-        
-        resume_doc = {
-            "user_email": email,
-            "resume_id": resume_id,
-            "template_id": str(template['_id']),
-            "html_content": filled_html,  # CRITICAL: Store HTML content
-            "profile_data": profile['resumeData'],
-            "sharable_link": sharable_link,
-            "metadata": resume_metadata,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow(),
-            "view_count": existing_resume.get("view_count", 0) if existing_resume else 0
-        }
-        
-        if existing_resume:
-            await resumes_collection.update_one(
-                {"user_email": email},
-                {"$set": resume_doc}
-            )
-            print(f"✅ Resume updated for: {email} (ID: {resume_id})")
-        else:
-            await resumes_collection.insert_one(resume_doc)
-            print(f"✅ Resume created for: {email} (ID: {resume_id})")
-        
-        return {
-            "resume_id": resume_id,
-            "sharable_link": sharable_link,
-            "metadata": resume_metadata
-        }
-        
-    except Exception as e:
-        print(f"❌ Generate resume error: {e}")
-        import traceback
-        traceback.print_exc()
-        return None
-
-
 def generate_basic_html_resume(profile_data: dict) -> str:
     """Generate basic HTML resume as fallback"""
-    sections = profile_data.get('sections', [])
+    sections = clean_empty_sections(profile_data.get('sections', []))
     
     html_parts = [
         '<!DOCTYPE html>',
@@ -1399,6 +1315,7 @@ def generate_basic_html_resume(profile_data: dict) -> str:
         '.subsection { margin: 15px 0 15px 20px; }',
         '.subsection-title { font-weight: bold; margin-bottom: 5px; }',
         '.data-item { margin: 5px 0; }',
+        'a { color: #3b82f6; text-decoration: underline; }',
         '</style>',
         '</head>',
         '<body>'
@@ -1411,10 +1328,11 @@ def generate_basic_html_resume(profile_data: dict) -> str:
         for subsection in section.get('subsections', []):
             html_parts.append(f'<div class="subsection">')
             if subsection.get('title'):
-                html_parts.append(f'<div class="subsection-title">{subsection["title"]}</div>')
+                html_parts.append(f'<div class="subsection-title">{make_links_clickable(subsection["title"])}</div>')
             
             for item in subsection.get('data', []):
-                html_parts.append(f'<div class="data-item">• {item}</div>')
+                if item and item.strip():
+                    html_parts.append(f'<div class="data-item">• {make_links_clickable(item)}</div>')
             
             html_parts.append('</div>')
         
@@ -1432,6 +1350,11 @@ async def get_user_profile(email: str):
             raise HTTPException(status_code=404, detail="Profile not found")
         
         profile["_id"] = str(profile["_id"])
+        
+        # Clean empty sections before returning
+        if 'resumeData' in profile and 'sections' in profile['resumeData']:
+            profile['resumeData']['sections'] = clean_empty_sections(profile['resumeData']['sections'])
+        
         return profile
     except HTTPException:
         raise
@@ -1445,6 +1368,9 @@ async def update_user_profile(email: str, request: Dict[str, Any]):
         resume_data = request.get('resumeData')
         if not resume_data:
             raise HTTPException(status_code=400, detail="Resume data is required")
+        
+        # Clean empty sections before updating
+        resume_data['sections'] = clean_empty_sections(resume_data.get('sections', []))
         
         result = await profiles_collection.update_one(
             {"email": email},
