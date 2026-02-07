@@ -99,7 +99,6 @@ class SaveProfileRequest(BaseModel):
     resumeData: Dict[str, Any]
     selectedRoles: List[str]
 
-# Auth Functions
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
@@ -219,7 +218,7 @@ async def health_check():
     except Exception as e:
         return {"status": "unhealthy", "database": "disconnected", "error": str(e)}
 
-# Auth Endpoints
+# Auth Endpoints (keeping existing code)
 @app.post("/api/auth/register", response_model=Token)
 async def register(user_data: UserRegister):
     try:
@@ -695,7 +694,7 @@ async def generate_user_resume(email: str):
         return None
 
 def extract_resume_metadata(resume_data: Dict[str, Any]) -> Dict[str, Any]:
-    """Extract metadata for resume tile display"""
+    """Extract metadata for resume tile display - IMPROVED VERSION"""
     import re
     
     metadata = {
@@ -710,35 +709,61 @@ def extract_resume_metadata(resume_data: Dict[str, Any]) -> Dict[str, Any]:
     sections = resume_data.get('sections', [])
     metadata["sections_count"] = len(sections)
     
+    # First pass: Extract name from contact/personal information section
     for section in sections:
         section_name = section.get('section_name', '').lower()
         subsections = section.get('subsections', [])
         
-        if any(keyword in section_name for keyword in ['contact', 'personal', 'information']):
+        if any(keyword in section_name for keyword in ['contact', 'personal', 'information', 'name']):
             for subsection in subsections:
                 data = subsection.get('data', [])
-                title = subsection.get('title', '')
+                title = subsection.get('title', '').strip()
                 
-                if not metadata['name'] and title and len(title.split()) <= 4:
-                    metadata['name'] = title
+                # Check if subsection title is the name (typically 2-4 words with capitals)
+                if title and not metadata['name']:
+                    title_words = title.split()
+                    if 2 <= len(title_words) <= 4:
+                        # Check if most words start with capital letter
+                        has_capitals = sum(1 for word in title_words if word and word[0].isupper()) >= len(title_words) / 2
+                        # Exclude common field names
+                        is_field_name = any(keyword in title.lower() for keyword in ['email', 'phone', 'address', 'location', 'linkedin', 'github'])
+                        
+                        if has_capitals and not is_field_name:
+                            metadata['name'] = title
+                            print(f"📝 Extracted name from title: {title}")
                 
+                # Also check first data item if it looks like a name
+                if not metadata['name'] and data and len(data) > 0:
+                    first_item = data[0].strip()
+                    if first_item and '@' not in first_item and 'http' not in first_item.lower():
+                        words = first_item.split()
+                        if 2 <= len(words) <= 4:
+                            has_capitals = sum(1 for word in words if word and word[0].isupper()) >= len(words) / 2
+                            if has_capitals:
+                                metadata['name'] = first_item
+                                print(f"📝 Extracted name from data: {first_item}")
+                
+                # Extract email
                 for item in data:
                     if '@' in item and not metadata['email']:
                         email_match = re.search(r'([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})', item)
                         if email_match:
                             metadata['email'] = email_match.group(1)
                     
+                    # Extract phone
                     if not metadata['phone']:
                         phone_match = re.search(r'(\+?\d{1,3}[-.\s]?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9})', item)
                         if phone_match:
                             metadata['phone'] = phone_match.group(1)
         
+        # Extract job title from experience section
         if not metadata['title'] and 'experience' in section_name and subsections:
             first_subsection = subsections[0]
             title = first_subsection.get('title', '')
             if title:
                 metadata['title'] = title
     
+    print(f"✅ Metadata extracted: name='{metadata['name']}', email='{metadata['email']}', phone='{metadata['phone']}'")
     return metadata
 
 @app.get("/api/user-resume/{email}")
@@ -821,17 +846,19 @@ async def get_user_resume(email: str):
 
 def generate_html_from_profile_data(profile_data: dict, metadata: dict) -> str:
     """
-    Generate clean HTML from profile JSON data
+    Generate clean HTML from profile JSON data - IMPROVED VERSION
     """
     sections = profile_data.get('sections', [])
     
-    # Extract contact info
+    # Extract contact info from sections
     contact_info = extract_contact_from_sections(sections)
-    print(f"📇 Extracted Metadata: {metadata}")
-    print(f"📇 Extracted Profile Data: {profile_data}")
     
-    # Get name from metadata or contact
-    name = metadata.get('name') or contact_info.get('name') or 'Resume'
+    # Get name - priority: contact_info > metadata > default
+    name = contact_info.get('name') or metadata.get('name') or 'Resume'
+    
+    print(f"🎨 Generating HTML for: {name}")
+    print(f"   Contact info: {contact_info}")
+    print(f"   Metadata: {metadata}")
     
     html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -847,110 +874,98 @@ def generate_html_from_profile_data(profile_data: dict, metadata: dict) -> str:
     }}
 
     body {{
-      font-family: Arial, Helvetica, sans-serif;
-      background: #f5f5f5;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f9fafb;
       margin: 0;
       padding: 20px;
-      line-height: 1.55;
+      line-height: 1.6;
+      color: #1f2937;
     }}
 
     .container {{
-      max-width: 760px;
+      max-width: 800px;
       margin: 0 auto;
       background: #ffffff;
-      padding: 2.2em 2.6em;
-      border-radius: 6px;
-      box-shadow: 0 0 12px rgba(0,0,0,0.08);
+      padding: 3em;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     }}
 
     header {{
       text-align: center;
-      margin-bottom: 1.5em;
-      padding-bottom: 1em;
-      border-bottom: 2px solid #e0e0e0;
+      margin-bottom: 2em;
+      padding-bottom: 1.5em;
+      border-bottom: 2px solid #3b82f6;
     }}
 
     h1 {{
       margin: 0 0 0.5em 0;
-      font-size: 2em;
-      font-weight: bold;
-      color: #222;
+      font-size: 2.5em;
+      font-weight: 800;
+      color: #111827;
+      letter-spacing: -0.025em;
     }}
 
     h2 {{
-      margin-top: 1.7em;
-      padding-bottom: 4px;
-      font-size: 1.3em;
-      border-bottom: 1px solid #ddd;
-      color: #333;
-      margin-bottom: 0.8em;
+      margin-top: 2em;
+      padding-bottom: 6px;
+      font-size: 1.4em;
+      font-weight: 700;
+      border-bottom: 2px solid #e5e7eb;
+      color: #374151;
+      margin-bottom: 1em;
+      letter-spacing: -0.015em;
     }}
 
     h3 {{
-      margin: 0.6em 0 0.2em 0;
-      font-size: 1.1em;
-      color: #222;
-      font-weight: bold;
+      margin: 0.8em 0 0.3em 0;
+      font-size: 1.15em;
+      color: #111827;
+      font-weight: 700;
     }}
 
     address {{
       font-style: normal;
-      color: #444;
+      color: #4b5563;
       font-size: 0.95em;
-      line-height: 1.6;
+      line-height: 1.7;
     }}
 
     ul {{
-      margin: 0.4em 0 0.4em 1.1em;
+      margin: 0.5em 0 0.5em 1.2em;
       padding-left: 0;
     }}
 
     li {{
-      margin: 0.28em 0;
-      line-height: 1.5;
+      margin: 0.35em 0;
+      line-height: 1.6;
+      color: #374151;
     }}
 
     p {{
-      margin: 0.3em 0;
-      font-size: 0.97em;
-      color: #333;
+      margin: 0.4em 0;
+      font-size: 0.98em;
+      color: #374151;
+      line-height: 1.6;
     }}
 
     a {{
-      color: #0057b8;
+      color: #3b82f6;
       text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
     }}
 
-    a:hover {{
-      text-decoration: underline;
-    }}
+    a:hover {{ color: #2563eb; text-decoration: underline; }}
 
-    .section {{
-      margin-bottom: 1.5em;
-    }}
-
-    .subsection {{
-      margin-bottom: 1em;
-    }}
-
-    .contact-links {{
-      margin-top: 0.5em;
-    }}
-
-    .separator {{
-      margin: 0 0.3em;
-    }}
+    .section {{ margin-bottom: 2em; }}
+    .subsection {{ margin-bottom: 1.2em; }}
+    .contact-links {{ margin-top: 0.6em; }}
+    .separator {{ margin: 0 0.4em; color: #9ca3af; }}
 
     @media print {{
-      body {{
-        background: white;
-        padding: 0;
-      }}
-      
-      .container {{
-        box-shadow: none;
-        padding: 1em;
-      }}
+      body {{ background: white; padding: 0; }}
+      .container {{ box-shadow: none; padding: 1em; }}
     }}
   </style>
 </head>
@@ -968,13 +983,16 @@ def generate_html_from_profile_data(profile_data: dict, metadata: dict) -> str:
     
     # Add email and phone
     contact_line = []
-    if contact_info.get('email'):
-        contact_line.append(contact_info['email'])
-    if contact_info.get('phone'):
-        contact_line.append(contact_info['phone'])
+    email = contact_info.get('email') or metadata.get('email')
+    phone = contact_info.get('phone') or metadata.get('phone')
+    
+    if email:
+        contact_line.append(email)
+    if phone:
+        contact_line.append(phone)
     
     if contact_line:
-        html += f"        <div style=\"margin-top: 0.4em;\">{' <span class=\"separator\">•</span> '.join(contact_line)}</div>\n"
+        html += f"        <div style=\"margin-top: 0.5em;\">{' <span class=\"separator\">•</span> '.join(contact_line)}</div>\n"
     
     html += """      </address>
     </header>
@@ -986,7 +1004,7 @@ def generate_html_from_profile_data(profile_data: dict, metadata: dict) -> str:
         section_name = section.get('section_name', '').lower()
         
         # Skip contact section
-        if 'contact' in section_name or 'personal information' in section_name:
+        if any(keyword in section_name for keyword in ['contact', 'personal information', 'name']):
             continue
         
         html += f"    <section class=\"section\">\n"
@@ -1006,7 +1024,7 @@ def generate_html_from_profile_data(profile_data: dict, metadata: dict) -> str:
 
 
 def extract_contact_from_sections(sections: list) -> dict:
-    """Extract contact information from sections"""
+    """Extract contact information from sections - IMPROVED VERSION"""
     import re
     
     info = {
@@ -1019,18 +1037,31 @@ def extract_contact_from_sections(sections: list) -> dict:
     for section in sections:
         section_name = section.get('section_name', '').lower()
         
-        if 'contact' in section_name or 'personal' in section_name:
+        if any(keyword in section_name for keyword in ['contact', 'personal', 'information', 'name']):
             for subsection in section.get('subsections', []):
-                title = subsection.get('title', '')
+                title = subsection.get('title', '').strip()
                 data = subsection.get('data', [])
                 
                 # Try to extract name from title
                 if title and not info['name']:
                     title_words = title.split()
                     if 2 <= len(title_words) <= 4:
-                        if all(word[0].isupper() for word in title_words if word):
-                            if 'email' not in title.lower() and 'phone' not in title.lower():
-                                info['name'] = title
+                        has_capitals = sum(1 for word in title_words if word and word[0].isupper()) >= len(title_words) / 2
+                        is_field_name = any(keyword in title.lower() for keyword in ['email', 'phone', 'address', 'location', 'linkedin', 'github'])
+                        if has_capitals and not is_field_name:
+                            info['name'] = title
+                            print(f"📛 Extracted name for HTML: {title}")
+                
+                # Try to extract name from first data item
+                if not info['name'] and data and len(data) > 0:
+                    first_item = data[0].strip()
+                    if first_item and '@' not in first_item and 'http' not in first_item.lower():
+                        words = first_item.split()
+                        if 2 <= len(words) <= 4:
+                            has_capitals = sum(1 for word in words if word and word[0].isupper()) >= len(words) / 2
+                            if has_capitals:
+                                info['name'] = first_item
+                                print(f"📛 Extracted name from data for HTML: {first_item}")
                 
                 for item in data:
                     # Extract email
@@ -1050,25 +1081,36 @@ def extract_contact_from_sections(sections: list) -> dict:
                         match = re.search(r'(https?://github\.com/[^\s)]+|github\.com/[^\s)]+)', item, re.IGNORECASE)
                         if match:
                             url = match.group(1) if match.group(1).startswith('http') else f'https://{match.group(1)}'
-                            info['links'].append(f'<a href="{url}">GitHub</a>')
+                            if f'<a href="{url}">GitHub</a>' not in info['links']:
+                                info['links'].append(f'<a href="{url}">GitHub</a>')
                     
                     # Extract LinkedIn
                     if 'linkedin' in item.lower() or 'linkedin.com' in item:
                         match = re.search(r'(https?://(?:www\.)?linkedin\.com/[^\s)]+|linkedin\.com/[^\s)]+)', item, re.IGNORECASE)
                         if match:
                             url = match.group(1) if match.group(1).startswith('http') else f'https://{match.group(1)}'
-                            info['links'].append(f'<a href="{url}">LinkedIn</a>')
+                            if f'<a href="{url}">LinkedIn</a>' not in info['links']:
+                                info['links'].append(f'<a href="{url}">LinkedIn</a>')
                     
                     # Extract Portfolio
                     if ('http' in item or 'www.' in item) and 'github' not in item.lower() and 'linkedin' not in item.lower():
                         match = re.search(r'(https?://[^\s)]+|www\.[^\s)]+)', item, re.IGNORECASE)
                         if match:
                             url = match.group(1) if match.group(1).startswith('http') else f'https://{match.group(1)}'
-                            info['links'].append(f'<a href="{url}">Portfolio</a>')
+                            portfolio_link = f'<a href="{url}">Portfolio</a>'
+                            if portfolio_link not in info['links']:
+                                info['links'].append(portfolio_link)
     
-    # Remove duplicates
-    info['links'] = list(dict.fromkeys(info['links']))
+    # Remove duplicates while preserving order
+    seen = set()
+    unique_links = []
+    for link in info['links']:
+        if link not in seen:
+            seen.add(link)
+            unique_links.append(link)
+    info['links'] = unique_links
     
+    print(f"📧 Contact info extracted: name='{info['name']}', email='{info['email']}', phone='{info['phone']}', links={len(info['links'])}")
     return info
 
 

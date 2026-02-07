@@ -489,7 +489,7 @@ const Documentation = () => {
                 <h3 className="text-lg font-bold text-gray-900 mb-2">Need More Help?</h3>
                 <p className="text-gray-700 text-sm mb-4">Can't find what you're looking for? Our support team is here to help!</p>
                 <a 
-                  href="mailto:support@resumeunlocked.com" 
+                  href="mailto:biswajeet092003@gmail.com" 
                   className="btn btn-primary text-sm"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

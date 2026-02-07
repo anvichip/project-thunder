@@ -1,4 +1,4 @@
-// src/components/ResumePopup.jsx - Professional Redesign
+// src/components/ResumePopup.jsx - Professional Redesign with Proper Name Extraction
 import { useState, useEffect } from 'react';
 import { useAuth0 } from "@auth0/auth0-react";
 
@@ -8,17 +8,86 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState('');
   const [profileData, setProfileData] = useState(null);
+  const [displayName, setDisplayName] = useState('');
 
   const { user, isAuthenticated } = useAuth0();
 
-  let userName = null;
-
-  if (isAuthenticated) {
-    userName = user.name;
-  }
-
   const getApiUrl = () => {
     return import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  };
+
+  // Extract name from profile data
+  const extractNameFromProfile = (profile) => {
+    try {
+      const sections = profile.resumeData?.sections || [];
+      
+      // Look for name in contact/personal information sections
+      for (const section of sections) {
+        const sectionName = section.section_name?.toLowerCase() || '';
+        
+        if (sectionName.includes('contact') || 
+            sectionName.includes('personal') || 
+            sectionName.includes('information') ||
+            sectionName.includes('name')) {
+          
+          for (const subsection of section.subsections || []) {
+            const title = subsection.title?.trim() || '';
+            const data = subsection.data || [];
+            
+            // Check if title is a name (2-4 capitalized words)
+            if (title) {
+              const words = title.split(' ').filter(w => w);
+              if (words.length >= 2 && words.length <= 4) {
+                const hasCapitals = words.filter(w => /^[A-Z]/.test(w)).length >= words.length / 2;
+                const isNotField = !title.toLowerCase().match(/email|phone|address|location|linkedin|github/);
+                
+                if (hasCapitals && isNotField) {
+                  console.log('📛 Found name in subsection title:', title);
+                  return title;
+                }
+              }
+            }
+            
+            // Check first data item
+            if (data.length > 0) {
+              const firstItem = data[0].trim();
+              if (firstItem && !firstItem.includes('@') && !firstItem.toLowerCase().includes('http')) {
+                const words = firstItem.split(' ').filter(w => w);
+                if (words.length >= 2 && words.length <= 4) {
+                  const hasCapitals = words.filter(w => /^[A-Z]/.test(w)).length >= words.length / 2;
+                  if (hasCapitals) {
+                    console.log('📛 Found name in data:', firstItem);
+                    return firstItem;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      
+      // Fallback to metadata
+      if (resumeData?.metadata?.name) {
+        console.log('📛 Using name from metadata:', resumeData.metadata.name);
+        return resumeData.metadata.name;
+      }
+      
+      // Last resort fallbacks
+      if (isAuthenticated && user?.name) {
+        console.log('📛 Using Auth0 name:', user.name);
+        return user.name;
+      }
+      
+      if (userData?.username) {
+        console.log('📛 Using username:', userData.username);
+        return userData.username;
+      }
+      
+      return 'Resume';
+    } catch (err) {
+      console.error('Error extracting name:', err);
+      return 'Resume';
+    }
   };
 
   useEffect(() => {
@@ -37,6 +106,7 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
         throw new Error('User email not found');
       }
 
+      console.log('📡 Fetching profile for:', email);
       const profileResponse = await fetch(`${apiUrl}/api/user-profile/${email}`);
       
       if (!profileResponse.ok) {
@@ -45,9 +115,14 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
 
       const profile = await profileResponse.json();
       setProfileData(profile);
+      
+      // Extract name from profile
+      const extractedName = extractNameFromProfile(profile);
+      setDisplayName(extractedName);
+      console.log('✅ Display name set to:', extractedName);
 
       const sections = profile.resumeData?.sections || resumeData.profile_data?.sections || [];
-      const html = createResumeHtml(sections, profile);
+      const html = createResumeHtml(sections, profile, extractedName);
       setResumeHtml(html);
     } catch (error) {
       console.error('❌ Error generating resume:', error);
@@ -57,9 +132,8 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
     }
   };
 
-  const createResumeHtml = (sections, profile) => {
+  const createResumeHtml = (sections, profile, userName) => {
     const contactInfo = extractContactInfo(sections);
-    const name = userName;
 
     return `
 <!DOCTYPE html>
@@ -67,7 +141,7 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${name} – Resume</title>
+  <title>${userName} – Resume</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
@@ -156,7 +230,7 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
 <body>
   <div class="container">
     <header>
-      <h1>${name}</h1>
+      <h1>${userName}</h1>
       <address>
         ${contactInfo.links.length > 0 ? `<div class="contact-links">${contactInfo.links.join(' <span class="separator">•</span> ')}</div>` : ''}
         ${contactInfo.email || contactInfo.phone ? `<div style="margin-top: 0.5em;">
@@ -178,11 +252,15 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
     sections.forEach(section => {
       const sectionName = section.section_name?.toLowerCase() || '';
       
-      if (sectionName.includes('contact') || sectionName.includes('personal')) {
+      if (sectionName.includes('contact') || 
+          sectionName.includes('personal') || 
+          sectionName.includes('information') ||
+          sectionName.includes('name')) {
         section.subsections?.forEach(subsection => {
           const title = subsection.title?.toLowerCase() || '';
           const data = subsection.data || [];
 
+          // Try to get name from subsection title
           if (subsection.title && !info.name) {
             const titleWords = subsection.title.split(' ');
             if (titleWords.length >= 2 && titleWords.length <= 4) {
@@ -242,7 +320,7 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
     return sections
       .filter(section => {
         const name = section.section_name?.toLowerCase() || '';
-        return !name.includes('contact') && !name.includes('personal information');
+        return !name.includes('contact') && !name.includes('personal information') && !name.includes('name');
       })
       .map(section => {
         const sectionName = section.section_name || 'Section';
@@ -356,6 +434,9 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
   const apiUrl = getApiUrl();
   const sharableUrl = `${apiUrl}${resumeData.sharable_link}`;
 
+  // Use displayName if available, otherwise fallback to metadata
+  const headerName = displayName || metadata.name || 'Your Resume';
+
   return (
     <div 
       className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 scale-in"
@@ -372,7 +453,7 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
             </div>
             <div>
               <h2 className="text-xl font-bold text-white">
-                {metadata.name || 'Your Resume'}
+                {headerName}
               </h2>
               {metadata.title && (
                 <p className="text-sm text-blue-100 font-medium mt-1">{metadata.title}</p>
