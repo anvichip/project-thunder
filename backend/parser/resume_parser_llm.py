@@ -7,32 +7,144 @@ from parser.utils import extract_json
 import time
 import os
 
+# def build_prompt(md_text: str) -> str:
+#     return f"""
+# You are a resume parser. Your job is to parse resumes written in Markdown format into structured JSON according to the following instructions.
+
+# TASK:
+# Parse the Markdown resume content and return a JSON object.
+
+# STRICT REQUIREMENTS:
+# - Output MUST be valid JSON only. No extra text.
+# - Extract all sections of resume. Example: Contact Information, Skills, Experience, Education, Projects, Certifications, etc.
+
+# RULES:
+# - Use Markdown headings (e.g. #, ##) to infer sections and subsections.
+# - If a section has no clear subsections, create exactly one subsection:
+#   {{
+#     "title": "<section_name>",
+#     "data": [...]
+#   }}
+# - Preserve all information.
+# - Include name in a seperte section called "Name".
+# - Include email id, phone number etc in "Contact Information" section.
+# - Include github, linkedin etc in "Links" section.
+# - Include skills in "Skills" section.
+# - Include work experience in "Experience" section, with each job as a separate entry.
+# - Other sections should be created as per the content. For example, if there is an "Education" section, create it with relevant details.
+# - Example of other sections: "Projects", "Certifications", "Awards", "Publications", "Languages", "Interests", etc.
+# - If content does not fit a section, create section_name="OTHER".
+
+# Example Format:
+
+
+# RESUME MARKDOWN:
+# <<<
+# {md_text}
+# >>>
+# """.strip()
+
 def build_prompt(md_text: str) -> str:
-    return f"""
-You are a resume parser. Your job is to parse resumes written in Markdown format into structured JSON according to the following instructions.
+    return f"""You are a resume parsing assistant.
 
-TASK:
-Parse the Markdown resume content and return a JSON object.
+Your task is to extract structured information from a resume written in Markdown format and convert it into a clean JSON object.
 
-STRICT REQUIREMENTS:
-- Output MUST be valid JSON only. No extra text.
-- Extract all sections of resume. Example: Contact Information, Skills, Experience, Education, Projects, Certifications, etc.
+Instructions:
+1. Extract only information that is explicitly present. Do NOT infer or hallucinate missing data.
+2. Preserve original vocabulary and phrasing. Do NOT rephrase or summarize. Use the exact words from the resume.
+3. Remove Markdown symbols (**, _, links, bullets, etc.).
+4. Convert dates into the format:
+   - Month Year (e.g., "July 2025")
+   - If present → use: start_date and end_date
+   - If ongoing → end_date = "Present"
+5. Extract bullet points as a list of strings.
+6. Extract skills mentioned within sections and also maintain a global unique skills list.
+7. If a field is missing, return null or an empty list.
+8. For links included in sections 
+8. Return ONLY valid JSON. No explanation, no extra text.
 
-RULES:
-- Use Markdown headings (e.g. #, ##) to infer sections and subsections.
-- If a section has no clear subsections, create exactly one subsection:
-  {{
-    "title": "<section_name>",
-    "data": [...]
-  }}
-- Preserve all information.
-- Include email id and phone number in "Contact Information" section.
-- If content does not fit a section, create section_name="OTHER".
+Output JSON schema:
 
-RESUME MARKDOWN:
-<<<
+{{
+  "name": string | null,
+
+  "contact_information": {{
+    "email": string | null,
+    "phone": string | null,
+    "location": string | null
+  }},
+
+  "links": {{
+    "linkedin": string | null,
+    "github": string | null,
+    "portfolio": string | null,
+    "website": string | null
+  }},
+
+  "summary": string | null,
+
+  "work_experience": [
+    {{
+      "job_title": string,
+      "company": string,
+      "company_url": string | null,
+      "location": string | null,
+      "start_date": string | null,
+      "end_date": string | null,
+      "skills": [string],
+      "responsibilities": [string]
+    }}
+  ],
+
+  "education": [
+    {{
+      "degree": string,
+      "field_of_study": string | null,
+      "institution": string,
+      "location": string | null,
+      "start_date": string | null,
+      "end_date": string | null,
+      "grade": string | null
+    }}
+  ],
+
+  "projects": [
+    {{
+      "name": string,
+      "description": string,
+      "skills": [string],
+      "url": string | null
+    }}
+  ],
+
+  "certifications": [
+    {{
+      "name": string,
+      "issuer": string | null,
+      "date": string | null
+    }}
+  ],
+
+  "skills": [string]
+}}
+
+Extraction Rules:
+- Clean company names by removing emojis or special characters.
+- Extract links from Markdown format: [text](url).
+- Bullet symbols such as "-", "*", "◦" should be converted into plain text items.
+- Skills listed in lines like:
+  "Skills: Python, AWS, Docker"
+  should be split into individual items.
+- Combine all detected skills into the top-level "skills" list (unique values).
+- If multiple roles exist at the same company, create separate entries.
+- Maintain the order of experiences as they appear.
+
+Input Markdown Resume:
+-----------------------
 {md_text}
->>>
+-----------------------
+
+Return ONLY the JSON.
 """.strip()
 
 
@@ -88,6 +200,6 @@ def main(file_path: str, output_path: str = "resume_parsed.json"):
 
 if __name__ == "__main__":
     start_time = time.time()
-    main("resume.pdf")
+    main("/Users/kohli1/thunder/project-thunder/backend/Anvi_Kohli_Resume.pdf")
     end_time = time.time()
     print(f"\n⏱️ Total time taken: {end_time - start_time:.2f} seconds")
