@@ -412,7 +412,11 @@ async def upload_resume(
         print(f"🤖 Starting LLM parsing with output path: {parsed_json_path}")
         
         try:
+            import time
+            start_time = time.time()
             output_file = parse_resume_llm(temp_path, parsed_json_path)
+            end_time = time.time()
+            print(f"⏱️ LLM parsing completed in {end_time - start_time:.2f} seconds")
             print(f"✅ LLM parsing completed, output: {output_file}")
         except Exception as parse_error:
             print(f"❌ LLM parsing failed: {parse_error}")

@@ -1,7 +1,8 @@
-// src/components/ResumeUpload.jsx - Commercial Redesign
+// src/components/ResumeUpload.jsx - Updated with progress bar
 import { useState } from 'react';
 import { resumeAPI } from '../services/api';
 import AuthHeader from './AuthHeader';
+import OnboardingProgressBar from './Onboardingprogressbar';
 
 const ResumeUpload = ({ userData, authMethod, onNext, onLogout }) => {
   const [parsedSections, setParsedSections] = useState([]);
@@ -126,28 +127,31 @@ const ResumeUpload = ({ userData, authMethod, onNext, onLogout }) => {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
+    <div className="min-h-screen bg-gray-50">
       <AuthHeader userData={userData} authMethod={authMethod} onLogout={onLogout} />
+      
+      {/* Progress Bar */}
+      <OnboardingProgressBar currentStep={2} />
       
       <div className="py-12 px-4">
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="text-center mb-12 fade-in">
-            <h1 className="text-5xl font-bold gradient-text mb-4">Upload Your Resume</h1>
-            <p className="text-xl text-neutral-600">
-              We'll automatically extract and organize your information
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">Upload Your Resume</h1>
+            <p className="text-lg text-gray-600">
+              We'll automatically extract and organize your information using AI
             </p>
           </div>
 
           {/* Upload Section */}
-          <div className="card mb-8 scale-in">
+          <div className="card-elevated mb-8 scale-in">
             {error && (
-              <div className="p-6 border-b-2 border-red-100">
-                <div className="bg-red-50 rounded-xl p-4 border-2 border-red-200 flex items-start gap-3">
+              <div className="p-6 border-b border-gray-200">
+                <div className="bg-red-50 rounded-lg p-4 border border-red-200 flex items-start gap-3">
                   <svg className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                   </svg>
-                  <span className="text-sm font-semibold text-red-800">{error}</span>
+                  <span className="text-sm font-medium text-red-800">{error}</span>
                 </div>
               </div>
             )}
@@ -160,30 +164,30 @@ const ResumeUpload = ({ userData, authMethod, onNext, onLogout }) => {
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
                 className={`
-                  relative border-3 border-dashed rounded-2xl p-12 text-center transition-all duration-300
+                  relative border-2 border-dashed rounded-xl p-12 text-center transition-all
                   ${dragActive 
-                    ? 'border-primary-500 bg-primary-50' 
-                    : 'border-neutral-300 hover:border-primary-400 hover:bg-neutral-50'
+                    ? 'border-blue-500 bg-blue-50' 
+                    : 'border-gray-300 hover:border-gray-400 bg-white'
                   }
                 `}
               >
                 <div className="max-w-md mx-auto">
                   <div className={`
-                    w-20 h-20 mx-auto mb-6 rounded-2xl flex items-center justify-center transition-all duration-300
+                    w-20 h-20 mx-auto mb-6 rounded-xl flex items-center justify-center transition-all
                     ${dragActive 
-                      ? 'bg-gradient-to-br from-primary-500 to-accent-purple scale-110' 
-                      : 'bg-gradient-to-br from-neutral-100 to-neutral-200'
+                      ? 'bg-blue-600 scale-110' 
+                      : 'bg-gray-100'
                     }
                   `}>
-                    <svg className={`w-10 h-10 ${dragActive ? 'text-white' : 'text-neutral-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className={`w-10 h-10 ${dragActive ? 'text-white' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                     </svg>
                   </div>
                   
-                  <h3 className="text-2xl font-bold text-neutral-900 mb-2">
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">
                     {dragActive ? 'Drop your file here' : 'Upload your resume'}
                   </h3>
-                  <p className="text-neutral-600 mb-6">
+                  <p className="text-gray-600 mb-6">
                     Drag and drop or click to browse
                   </p>
                   
@@ -200,25 +204,25 @@ const ResumeUpload = ({ userData, authMethod, onNext, onLogout }) => {
                     />
                   </label>
                   
-                  <p className="text-sm text-neutral-500 mt-4">
-                    Supported: PDF, DOCX • Max size: 10MB
+                  <p className="text-sm text-gray-500 mt-4">
+                    Supported formats: PDF, DOCX • Maximum size: 10MB
                   </p>
                 </div>
 
                 {file && (
-                  <div className="mt-6 p-4 bg-primary-50 border-2 border-primary-200 rounded-xl flex items-center gap-4 max-w-md mx-auto">
-                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-accent-purple flex items-center justify-center flex-shrink-0">
+                  <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-4 max-w-md mx-auto">
+                    <div className="w-12 h-12 rounded-lg bg-blue-600 flex items-center justify-center flex-shrink-0">
                       <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                       </svg>
                     </div>
                     <div className="flex-1 text-left">
-                      <p className="font-semibold text-neutral-900 truncate">{file.name}</p>
-                      <p className="text-sm text-neutral-600">{(file.size / 1024).toFixed(2)} KB</p>
+                      <p className="font-semibold text-gray-900 truncate">{file.name}</p>
+                      <p className="text-sm text-gray-600">{(file.size / 1024).toFixed(2)} KB</p>
                     </div>
                     <button
                       onClick={() => setFile(null)}
-                      className="btn-ghost btn-icon text-neutral-500 hover:text-red-600"
+                      className="btn-ghost btn-icon text-gray-500 hover:text-red-600"
                     >
                       <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -231,12 +235,12 @@ const ResumeUpload = ({ userData, authMethod, onNext, onLogout }) => {
               <button
                 onClick={handleFileUpload}
                 disabled={!file || uploading}
-                className="btn btn-primary w-full mt-6 py-4 text-lg"
+                className="btn btn-primary w-full mt-6 btn-lg"
               >
                 {uploading ? (
                   <span className="flex items-center gap-3">
                     <span className="spinner"></span>
-                    Parsing your resume...
+                    Analyzing your resume...
                   </span>
                 ) : (
                   <>
@@ -255,21 +259,24 @@ const ResumeUpload = ({ userData, authMethod, onNext, onLogout }) => {
             <div className="space-y-6 fade-in">
               <div className="flex items-center justify-between mb-6">
                 <div>
-                  <h2 className="text-3xl font-bold text-neutral-900">Review & Edit</h2>
-                  <p className="text-neutral-600 mt-1">{parsedSections.length} sections extracted</p>
+                  <h2 className="text-2xl font-bold text-gray-900">Review & Edit Your Information</h2>
+                  <p className="text-gray-600 mt-1">{parsedSections.length} sections extracted successfully</p>
                 </div>
-                <span className="badge badge-success text-base px-4 py-2">
-                  ✓ Parsed Successfully
+                <span className="badge badge-success text-sm px-4 py-2">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  Parsed Successfully
                 </span>
               </div>
 
               {parsedSections.map((section, sectionIndex) => (
-                <div key={sectionIndex} className="card hover-lift stagger-item">
-                  <div className="bg-gradient-to-r from-primary-600 to-accent-purple p-6">
-                    <h3 className="text-2xl font-bold text-white flex items-center gap-3">
-                      <span className="text-3xl">📋</span>
+                <div key={sectionIndex} className="card-elevated hover-lift stagger-item">
+                  <div className="bg-gradient-to-r from-blue-600 to-teal-600 p-6">
+                    <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                      <span className="text-2xl">📋</span>
                       {section.section_name}
-                      <span className="ml-auto text-sm font-normal text-white/80">
+                      <span className="ml-auto text-sm font-normal text-blue-100">
                         {section.subsections?.length || 0} subsection(s)
                       </span>
                     </h3>
@@ -277,9 +284,9 @@ const ResumeUpload = ({ userData, authMethod, onNext, onLogout }) => {
 
                   <div className="p-6 space-y-6">
                     {section.subsections?.map((subsection, subsectionIndex) => (
-                      <div key={subsectionIndex} className="bg-neutral-50 rounded-xl p-6 border-2 border-neutral-200">
+                      <div key={subsectionIndex} className="bg-gray-50 rounded-lg p-5 border border-gray-200">
                         <div className="mb-4">
-                          <label className="block text-sm font-bold text-neutral-700 mb-2">
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Subsection Title
                           </label>
                           <input
@@ -292,7 +299,7 @@ const ResumeUpload = ({ userData, authMethod, onNext, onLogout }) => {
                         </div>
 
                         <div className="space-y-3">
-                          <label className="block text-sm font-bold text-neutral-700 mb-2">
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
                             Details ({subsection.data?.length || 0} items)
                           </label>
                           {subsection.data?.map((dataItem, dataIndex) => (
@@ -318,7 +325,7 @@ const ResumeUpload = ({ userData, authMethod, onNext, onLogout }) => {
                           
                           <button
                             onClick={() => addDataItem(sectionIndex, subsectionIndex)}
-                            className="btn bg-green-600 text-white hover:bg-green-700 text-sm"
+                            className="btn btn-secondary text-sm"
                           >
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                               <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -334,7 +341,7 @@ const ResumeUpload = ({ userData, authMethod, onNext, onLogout }) => {
 
               <button
                 onClick={handleSubmit}
-                className="btn btn-primary w-full py-5 text-lg hover-lift shadow-xl"
+                className="btn btn-primary w-full btn-lg hover-lift"
               >
                 <span className="flex items-center gap-3">
                   Continue to Role Selection

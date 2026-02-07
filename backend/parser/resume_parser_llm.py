@@ -66,7 +66,9 @@ Instructions:
 Output JSON schema:
 
 {{
-  "name": string | null,
+  "name": {{
+    "Name": string
+  }},
 
   "contact_information": {{
     "Email": string | null,
@@ -198,8 +200,8 @@ def main(file_path: str, output_path: str = "resume_parsed.json"):
     return output_path
 
 
-# if __name__ == "__main__":
-#     start_time = time.time()
-#     main("/Users/kohli1/thunder/project-thunder/backend/Anvi_Kohli_Resume.pdf")
-#     end_time = time.time()
-#     print(f"\n⏱️ Total time taken: {end_time - start_time:.2f} seconds")
+if __name__ == "__main__":
+    start_time = time.time()
+    main("/Users/behera5/Desktop/project-thunder/backend/parser/resume.pdf")
+    end_time = time.time()
+    print(f"\n⏱️ Total time taken: {end_time - start_time:.2f} seconds")

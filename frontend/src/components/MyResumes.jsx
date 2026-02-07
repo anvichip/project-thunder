@@ -1,4 +1,4 @@
-// src/components/MyResumes.jsx - Commercial Redesign
+// src/components/MyResumes.jsx - Professional Redesign
 import { useState, useEffect } from 'react';
 import { resumeAPI } from '../services/api';
 import ResumeTile from './ResumeTile';
@@ -55,8 +55,8 @@ const MyResumes = ({ userData }) => {
 
   const showToast = (message, type) => {
     const toast = document.createElement('div');
-    toast.className = `fixed bottom-8 right-8 z-50 px-6 py-4 rounded-xl shadow-2xl bounce-in ${
-      type === 'success' ? 'bg-gradient-to-r from-green-500 to-green-600' : 'bg-gradient-to-r from-red-500 to-red-600'
+    toast.className = `fixed bottom-8 right-8 z-50 px-6 py-4 rounded-lg shadow-xl scale-in ${
+      type === 'success' ? 'bg-green-600' : 'bg-red-600'
     } text-white font-semibold`;
     toast.textContent = message;
     document.body.appendChild(toast);
@@ -67,9 +67,9 @@ const MyResumes = ({ userData }) => {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <div className="spinner w-16 h-16 border-4 mx-auto mb-6"></div>
-          <p className="text-xl text-neutral-600 font-medium">Loading your resume...</p>
-          <p className="text-sm text-neutral-500 mt-2">This will only take a moment</p>
+          <div className="spinner w-16 h-16 mx-auto mb-6"></div>
+          <p className="text-xl text-gray-600 font-medium">Loading your resume...</p>
+          <p className="text-sm text-gray-500 mt-2">This will only take a moment</p>
         </div>
       </div>
     );
@@ -78,16 +78,16 @@ const MyResumes = ({ userData }) => {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="card card-glow p-8 fade-in">
+      <div className="card-elevated p-8 fade-in">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div className="flex-1">
             <div className="flex items-center gap-3 mb-3">
-              <h1 className="text-4xl font-bold gradient-text">My Resumes</h1>
+              <h1 className="text-3xl font-bold text-gray-900">My Resumes</h1>
               {resumeData && (
-                <span className="badge badge-success text-sm">Active</span>
+                <span className="badge badge-success">Active</span>
               )}
             </div>
-            <p className="text-neutral-600 text-lg">
+            <p className="text-gray-600">
               Manage and share your professional resume
             </p>
           </div>
@@ -121,9 +121,9 @@ const MyResumes = ({ userData }) => {
 
       {/* Error Display */}
       {error && (
-        <div className="card p-6 border-l-4 border-red-500 slide-in-left">
+        <div className="card p-6 border-l-4 border-red-500">
           <div className="flex items-start gap-4">
-            <div className="w-12 h-12 flex-shrink-0 rounded-xl bg-red-100 flex items-center justify-center">
+            <div className="w-12 h-12 flex-shrink-0 rounded-lg bg-red-100 flex items-center justify-center">
               <svg className="w-6 h-6 text-red-600" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
               </svg>
@@ -154,15 +154,15 @@ const MyResumes = ({ userData }) => {
           />
         </div>
       ) : !error && (
-        <div className="card p-16 text-center scale-in">
+        <div className="card-elevated p-16 text-center scale-in">
           <div className="max-w-md mx-auto">
-            <div className="w-24 h-24 mx-auto mb-8 rounded-2xl bg-gradient-to-br from-neutral-100 to-neutral-200 flex items-center justify-center">
-              <svg className="w-12 h-12 text-neutral-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-24 h-24 mx-auto mb-8 rounded-xl bg-gray-100 flex items-center justify-center">
+              <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <h3 className="text-2xl font-bold text-neutral-900 mb-3">No Resume Generated Yet</h3>
-            <p className="text-neutral-600 mb-8 leading-relaxed">
+            <h3 className="text-2xl font-bold text-gray-900 mb-3">No Resume Generated Yet</h3>
+            <p className="text-gray-600 mb-8 leading-relaxed">
               Complete your profile to generate your professional resume and start sharing it with employers.
             </p>
             <button className="btn btn-primary">
@@ -178,47 +178,47 @@ const MyResumes = ({ userData }) => {
       {/* Stats Cards */}
       {resumeData && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 fade-in" style={{ animationDelay: '0.2s' }}>
-          <div className="card p-6 hover-lift">
+          <div className="stats-card hover-lift">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center flex-shrink-0">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                 </svg>
               </div>
               <div className="flex-1">
-                <p className="text-sm text-neutral-600 font-medium">Total Views</p>
-                <p className="text-3xl font-bold text-neutral-900">{resumeData.view_count || 0}</p>
+                <p className="text-sm text-gray-600 font-medium">Total Views</p>
+                <p className="text-3xl font-bold text-gray-900">{resumeData.view_count || 0}</p>
               </div>
             </div>
           </div>
 
-          <div className="card p-6 hover-lift">
+          <div className="stats-card hover-lift">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 rounded-lg bg-teal-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
               <div className="flex-1">
-                <p className="text-sm text-neutral-600 font-medium">Last Updated</p>
-                <p className="text-lg font-bold text-neutral-900">
+                <p className="text-sm text-gray-600 font-medium">Last Updated</p>
+                <p className="text-lg font-bold text-gray-900">
                   {new Date(resumeData.updated_at).toLocaleDateString()}
                 </p>
               </div>
             </div>
           </div>
 
-          <div className="card p-6 hover-lift">
+          <div className="stats-card hover-lift">
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center flex-shrink-0">
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="w-12 h-12 rounded-lg bg-purple-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                 </svg>
               </div>
               <div className="flex-1">
-                <p className="text-sm text-neutral-600 font-medium">Sections</p>
-                <p className="text-3xl font-bold text-neutral-900">{resumeData.metadata?.sections_count || 0}</p>
+                <p className="text-sm text-gray-600 font-medium">Sections</p>
+                <p className="text-3xl font-bold text-gray-900">{resumeData.metadata?.sections_count || 0}</p>
               </div>
             </div>
           </div>
