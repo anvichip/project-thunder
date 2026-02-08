@@ -15,11 +15,13 @@ import json
 from dotenv import load_dotenv
 from bson import ObjectId
 import secrets
+import PyPDF2
 import hashlib
 import re
-
+import io
 # Import resume parser with explicit output path
 from parser.resume_parser_llm import main as parse_resume_llm
+from scorer.keyword_matcher import extract_skills_from_jd, compare_skills
 
 load_dotenv()
 
@@ -1440,6 +1442,26 @@ async def regenerate_resume(email: str):
         print(f"❌ Regenerate resume error: {e}")
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/process-jd")
+async def process_jd(file: UploadFile = File(...), jd_text: str = Form(...)):
+    # Read PDF text
+    content = await file.read()
+    pdf_reader = PyPDF2.PdfReader(io.BytesIO(content))
+    jd_text = " ".join([page.extract_text() for page in pdf_reader.pages])
+
+    jd_skills = extract_skills_from_jd(jd_text)
+
+    # get skills from database and call compare function
+    candidate_skills = ["Python", "AWS", "Machine Learning"]  # Placeholder for actual skills from DB
+    matched, missed, match_score = compare_skills(jd_skills, candidate_skills)
+
+    # Sample return
+    return {
+        "matched_skills": matched,
+        "missed_skills": missed,
+        "match_score": f"{match_score}%"
+    }
 
 if __name__ == "__main__":
     import uvicorn
