@@ -8,6 +8,7 @@ import ProfileView from './ProfileView';
 import AnalyticsDashboard from './AnalyticsView';
 import JDMatcher from './JDMatcher';
 import Documentation from './Documentation';
+import profileImage from '../assets/profile.png';
 
 const MainDashboard = ({ userData, profileData, onLogout, activeTab, onTabChange }) => {
   const [fullProfile, setFullProfile] = useState(profileData);
@@ -156,7 +157,7 @@ const MainDashboard = ({ userData, profileData, onLogout, activeTab, onTabChange
       case 'analytics':
         return <AnalyticsDashboard />;
       case 'jd-matcher':
-        return <JDMatcher />;
+        return <JDMatcher userData={userData} />;
       case 'docs':
         return <Documentation />;
       default:
@@ -187,25 +188,47 @@ const MainDashboard = ({ userData, profileData, onLogout, activeTab, onTabChange
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
                 </div>
-                <span className="font-semibold text-lg text-gray-900 hidden sm:block">Resume Unlocked</span>
+                <span className="font-semibold text-lg text-gray-900 hidden sm:block">RESLY.AI</span>
               </div>
             </div>
 
             {/* User Menu */}
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3 pl-4 border-l border-gray-200">
-                {userData?.picture && (
-                  <img
-                    src={userData.picture}
-                    alt="Profile"
-                    className="w-9 h-9 rounded-full ring-2 ring-gray-200"
-                  />
-                )}
+                {/* Avatar */}
+                <div className="flex-shrink-0 relative">
+                  {userData?.picture ? (
+                    <img
+                      src={userData.picture || profileImage}
+                      alt="Profile"
+                      className="w-9 h-9 rounded-full ring-2 ring-gray-200 object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = profileImage; // fallback image
+                      }}
+                    />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-gray-100 flex items-center justify-center">
+                      <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
+                      </svg>
+                    </div>
+                  )}
+                </div>
+
+                {/* User Info */}
                 <div className="hidden md:block">
                   <p className="text-sm font-medium text-gray-900 truncate max-w-[150px]">
                     {userData?.name || userData?.username || userData?.email?.split('@')[0]}
                   </p>
-                  <p className="text-xs text-gray-500 truncate max-w-[150px]">{userData?.email}</p>
+                  <p className="text-xs text-gray-500 truncate max-w-[150px]">
+                    {userData?.email}
+                  </p>
                 </div>
               </div>
               
