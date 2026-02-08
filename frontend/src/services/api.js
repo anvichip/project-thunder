@@ -276,6 +276,19 @@ export const profileAPI = {
       throw error;
     }
   },
+
+  matchJD: async (formData) => {
+      try {
+        console.log('Initiating JD Skill Extraction...');
+        const response = await api.post('/api/extract-skills', formData);
+
+        console.log('Skills extracted successfully:', response.data);
+        return response.data;
+      } catch (error) {
+        console.error('JD Skill Extraction Error:', error);
+        throw error;
+      }
+    },
 };
 
 export default api;

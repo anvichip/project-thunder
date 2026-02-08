@@ -1,7 +1,8 @@
 import requests
-from parser.schemas import ResumeJSON
+from typing import Type
+from pydantic import BaseModel
 
-def call_ollama(prompt: str) -> str:
+def call_ollama(prompt: str, format_model: Type[BaseModel]) -> str:
     model = "llama3.2"
     url = "http://localhost:11434/api/generate" #TODO: Change according to EC2 setup
 
@@ -12,7 +13,7 @@ def call_ollama(prompt: str) -> str:
         "options": {
             "temperature": 0
         },
-        "format": ResumeJSON.model_json_schema() #TODO: Fast the parsing
+        "format": format_model.model_json_schema()
     }
 
     resp = requests.post(url, json=payload, timeout=500)
