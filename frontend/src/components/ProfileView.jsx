@@ -2,6 +2,7 @@
 import { useState } from 'react';
 import ContentFormatter from './ContentFormatter';
 import { cleanText } from '../utils/textCleaner';
+import profileImage from '../assets/profile.png';
 
 const ProfileView = ({ profileData, onEditProfile, onEditRoles, userData }) => {
   const [activeSubTab, setActiveSubTab] = useState('overview');
@@ -235,17 +236,23 @@ const ProfileView = ({ profileData, onEditProfile, onEditRoles, userData }) => {
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
         <div className="flex flex-col md:flex-row md:items-center gap-6">
           {/* User Avatar */}
-          <div className="flex-shrink-0">
-            {userData?.picture ? (
-              <img
-                src={userData.picture}
-                alt="Profile"
-                className="w-20 h-20 rounded-full ring-4 ring-gray-100"
-              />
-            ) : (
-              <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center">
+          <div className="flex-shrink-0 relative">
+            <img
+              src={userData?.picture || profileImage}
+              alt="Profile"
+              className="w-20 h-20 rounded-full ring-4 ring-gray-100 object-cover"
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = profileImage;
+              }}
+            />
+
+            {!userData?.picture && (
+              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-gray-100">
                 <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
                 </svg>
               </div>
             )}

@@ -1,4 +1,4 @@
-# Resume Unlocked - Complete Job Application Platform
+# RESLY.AI : Resume Simplified - Complete Job Application Platform
 
 A comprehensive platform for managing resumes, job applications, and career opportunities with AI-powered features.
 

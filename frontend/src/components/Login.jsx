@@ -69,7 +69,7 @@ const LoginPage = ({ onLogin, onSwitchToRegister }) => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <span className="text-xl font-bold text-gray-900">Resume Unlocked</span>
+              <span className="text-xl font-bold text-gray-900">RESLY.AI : Resume Simplified</span>
             </div>
             <div className="hidden md:flex items-center gap-6">
               <a href="#features" className="text-gray-600 hover:text-gray-900 font-medium">Features</a>
@@ -172,7 +172,7 @@ const LoginPage = ({ onLogin, onSwitchToRegister }) => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
               </div>
-              <h1 className="text-2xl font-bold gradient-text">Resume Unlocked</h1>
+              <h1 className="text-2xl font-bold gradient-text">RESLY.AI : Resume Simplified</h1>
             </div>
 
             {/* Login Card */}

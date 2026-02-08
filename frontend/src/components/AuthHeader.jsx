@@ -41,7 +41,7 @@ const AuthHeader = ({ userData, authMethod, onLogout, showLogout = true }) => {
               </svg>
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900">Resume Unlocked</h1>
+              <h1 className="text-lg font-bold text-gray-900">RESLY.AI</h1>
               <p className="text-xs text-gray-500 font-medium">Profile Setup</p>
             </div>
           </div>

@@ -1,4 +1,4 @@
-// src/components/ResumePopup.jsx - Updated with clickable links
+// src/components/ResumePopup.jsx - Updated with proper section name formatting
 import { useState, useEffect } from 'react';
 import { useAuth0 } from "@auth0/auth0-react";
 
@@ -14,6 +14,18 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
 
   const getApiUrl = () => {
     return import.meta.env.VITE_API_URL || 'http://localhost:8000';
+  };
+
+  // Format section name (e.g., 'work_experience' -> 'Work Experience', 'links' -> 'Links')
+  const formatSectionName = (sectionName) => {
+    if (!sectionName) return 'Section';
+    
+    // Replace underscores with spaces and title case each word
+    return sectionName
+      .replace(/_/g, ' ')
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
   };
 
   // Make links clickable
@@ -349,13 +361,14 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
         return !name.includes('contact') && !name.includes('personal information') && !name.includes('name');
       })
       .map(section => {
-        const sectionName = section.section_name || 'Section';
+        // Format section name properly
+        const formattedSectionName = formatSectionName(section.section_name || 'Section');
         const subsections = section.subsections || [];
 
         return `
     <section class="section">
-      <h2>${sectionName}</h2>
-      ${subsections.map(subsection => generateSubsectionHtml(subsection, sectionName)).join('\n')}
+      <h2>${formattedSectionName}</h2>
+      ${subsections.map(subsection => generateSubsectionHtml(subsection, section.section_name)).join('\n')}
     </section>`;
       })
       .join('\n');

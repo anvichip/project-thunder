@@ -133,7 +133,7 @@ const Congratulations = ({ onGoToDashboard }) => {
           {/* Footer Message */}
           <div className="text-center mt-8 fade-in" style={{ animationDelay: '0.4s' }}>
             <p className="text-gray-600">
-              Welcome to <span className="font-bold gradient-text">Resume Unlocked</span> 
+              Welcome to <span className="font-bold gradient-text">RESLY.AI : Resume Simplified</span> 
             </p>
           </div>
         </div>

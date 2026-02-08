@@ -14,8 +14,8 @@ const Documentation = () => {
         </svg>
       ),
       content: `
-        <h3 class="text-xl font-bold text-gray-900 mb-4">Welcome to Resume Unlocked</h3>
-        <p class="text-gray-700 mb-4 leading-relaxed">Resume Unlocked is your AI-powered career companion that transforms your traditional resume into a dynamic, shareable profile.</p>
+        <h3 class="text-xl font-bold text-gray-900 mb-4">Welcome to RESLY.AI : Resume Simplified</h3>
+        <p class="text-gray-700 mb-4 leading-relaxed">RESLY.AI : Resume Simplified is your AI-powered career companion that transforms your traditional resume into a dynamic, shareable profile.</p>
         
         <h4 class="text-lg font-bold text-gray-900 mb-3 mt-6">Quick Start Guide</h4>
         <ol class="space-y-3 text-gray-700">
@@ -405,7 +405,7 @@ const Documentation = () => {
 
           <details class="bg-white border border-gray-200 rounded-lg p-5">
             <summary class="font-bold text-gray-900 cursor-pointer">Is there a mobile app?</summary>
-            <p class="mt-3 text-gray-700 text-sm leading-relaxed">Resume Unlocked is fully responsive and works great on mobile browsers. We're currently working on native mobile apps for iOS and Android.</p>
+            <p class="mt-3 text-gray-700 text-sm leading-relaxed">RESLY.AI : Resume Simplified is fully responsive and works great on mobile browsers. We're currently working on native mobile apps for iOS and Android.</p>
           </details>
 
           <details class="bg-white border border-gray-200 rounded-lg p-5">
@@ -436,7 +436,7 @@ const Documentation = () => {
           </div>
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Documentation</h1>
-            <p className="text-gray-600 mt-1">Learn how to make the most of Resume Unlocked</p>
+            <p className="text-gray-600 mt-1">Learn how to make the most of RESLY.AI : Resume Simplified</p>
           </div>
         </div>
       </div>
