@@ -170,7 +170,7 @@ def main(file_path: str, output_path: str = "resume_parsed.json"):
     prompt = build_prompt(md_text)
 
     print("📨 Calling Ollama LLM...")
-    response = call_ollama(prompt=prompt)
+    response = call_ollama(prompt=prompt, format_model=ResumeJSON)
 
     print("🧾 Raw LLM output (first 500 chars):")
     print(response[:500] + "...")
