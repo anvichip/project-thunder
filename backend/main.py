@@ -21,7 +21,7 @@ import re
 import io
 # Import resume parser with explicit output path
 from parser.resume_parser_llm import main as parse_resume_llm
-from scorer.keyword_matcher import extract_skills_from_jd, compare_skills
+from scorer.keyword_matcher import extract_skills_from_jd, extract_skills_from_text, compare_skills, generate_recommendations
 
 load_dotenv()
 
@@ -102,6 +102,10 @@ class SaveProfileRequest(BaseModel):
     resumeData: Dict[str, Any]
     selectedRoles: List[str]
 
+class JDMatchRequest(BaseModel):
+    email: EmailStr
+    jd_text: str
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     return pwd_context.verify(plain_password, hashed_password)
 
@@ -136,6 +140,14 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     if user is None:
         raise credentials_exception
     return user
+
+def format_section_name(section_name: str) -> str:
+    """Format section name for display (e.g., 'work_experience' -> 'Work Experience', 'links' -> 'Links')"""
+    if not section_name:
+        return 'Section'
+    
+    formatted = section_name.replace('_', ' ').title()
+    return formatted
 
 def generate_unique_resume_id(email: str) -> str:
     """Generate a unique sharable resume ID"""
@@ -180,6 +192,47 @@ def clean_empty_sections(sections: list) -> list:
             cleaned_sections.append(section_copy)
     
     return cleaned_sections
+
+def extract_text_from_pdf(file_content: bytes) -> str:
+    """Extract text from PDF file"""
+    try:
+        pdf_reader = PyPDF2.PdfReader(io.BytesIO(file_content))
+        text_parts = []
+        for page in pdf_reader.pages:
+            text = page.extract_text()
+            if text:
+                text_parts.append(text)
+        return " ".join(text_parts)
+    except Exception as e:
+        print(f"❌ PDF extraction error: {e}")
+        raise HTTPException(status_code=400, detail="Failed to extract text from PDF")
+
+def extract_skills_from_resume_data(resume_data: Dict[str, Any]) -> List[str]:
+    """Extract all skills from resume data structure"""
+    all_skills = []
+    sections = resume_data.get('sections', [])
+    
+    for section in sections:
+        section_name = section.get('section_name', '').lower()
+        
+        # Focus on skills, technical skills, and tools sections
+        if any(keyword in section_name for keyword in ['skill', 'technical', 'tools', 'technologies', 'expertise']):
+            for subsection in section.get('subsections', []):
+                data = subsection.get('data', [])
+                for item in data:
+                    # Split by common separators
+                    skills = re.split(r'[,;|•]', item)
+                    all_skills.extend([s.strip() for s in skills if s.strip()])
+        
+        # Also extract from experience and projects to get context
+        elif any(keyword in section_name for keyword in ['experience', 'project']):
+            for subsection in section.get('subsections', []):
+                data = subsection.get('data', [])
+                # Join all text from experience/projects
+                text = " ".join(data)
+                all_skills.append(text)
+    
+    return all_skills
 
 async def migrate_existing_resumes():
     """Add resume_id and sharable_link to existing resumes that don't have them"""
@@ -244,7 +297,7 @@ async def shutdown_db_client():
 
 @app.get("/")
 async def root():
-    return {"message": "CareerHub API is running", "status": "ok"}
+    return {"message": "RESLY.AI API is running", "status": "ok"}
 
 @app.get("/health")
 async def health_check():
@@ -870,176 +923,7 @@ async def get_user_resume(email: str):
             detail=f"An error occurred while loading your resume: {str(e)}"
         )
 
-def generate_html_from_profile_data(profile_data: dict, metadata: dict) -> str:
-    """Generate clean HTML from profile JSON data with clickable links"""
-    sections = profile_data.get('sections', [])
-    
-    # Clean empty sections
-    sections = clean_empty_sections(sections)
-    
-    contact_info = extract_contact_from_sections(sections)
-    
-    name = contact_info.get('name') or metadata.get('name') or 'Resume'
-    
-    print(f"🎨 Generating HTML for: {name}")
-    
-    html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{name} – Resume</title>
-  <style>
-    * {{
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }}
 
-    body {{
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-      background: #f9fafb;
-      margin: 0;
-      padding: 20px;
-      line-height: 1.6;
-      color: #1f2937;
-    }}
-
-    .container {{
-      max-width: 800px;
-      margin: 0 auto;
-      background: #ffffff;
-      padding: 3em;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }}
-
-    header {{
-      text-align: center;
-      margin-bottom: 2em;
-      padding-bottom: 1.5em;
-      border-bottom: 2px solid #3b82f6;
-    }}
-
-    h1 {{
-      margin: 0 0 0.5em 0;
-      font-size: 2.5em;
-      font-weight: 800;
-      color: #111827;
-      letter-spacing: -0.025em;
-    }}
-
-    h2 {{
-      margin-top: 2em;
-      padding-bottom: 6px;
-      font-size: 1.4em;
-      font-weight: 700;
-      border-bottom: 2px solid #e5e7eb;
-      color: #374151;
-      margin-bottom: 1em;
-      letter-spacing: -0.015em;
-    }}
-
-    h3 {{
-      margin: 0.8em 0 0.3em 0;
-      font-size: 1.15em;
-      color: #111827;
-      font-weight: 700;
-    }}
-
-    address {{
-      font-style: normal;
-      color: #4b5563;
-      font-size: 0.95em;
-      line-height: 1.7;
-    }}
-
-    ul {{
-      margin: 0.5em 0 0.5em 1.2em;
-      padding-left: 0;
-    }}
-
-    li {{
-      margin: 0.35em 0;
-      line-height: 1.6;
-      color: #374151;
-    }}
-
-    p {{
-      margin: 0.4em 0;
-      font-size: 0.98em;
-      color: #374151;
-      line-height: 1.6;
-    }}
-
-    a {{
-      color: #3b82f6;
-      text-decoration: underline;
-      font-weight: 600;
-      transition: color 0.2s;
-    }}
-
-    a:hover {{ color: #2563eb; }}
-
-    .section {{ margin-bottom: 2em; }}
-    .subsection {{ margin-bottom: 1.2em; }}
-    .contact-links {{ margin-top: 0.6em; }}
-    .separator {{ margin: 0 0.4em; color: #9ca3af; }}
-
-    @media print {{
-      body {{ background: white; padding: 0; }}
-      .container {{ box-shadow: none; padding: 1em; }}
-    }}
-  </style>
-</head>
-
-<body>
-  <div class="container">
-    <header>
-      <h1>{name}</h1>
-      <address>
-"""
-    
-    if contact_info.get('links'):
-        html += f"        <div class=\"contact-links\">{' <span class=\"separator\">•</span> '.join(contact_info['links'])}</div>\n"
-    
-    contact_line = []
-    email = contact_info.get('email') or metadata.get('email')
-    phone = contact_info.get('phone') or metadata.get('phone')
-    
-    if email:
-        contact_line.append(f'<a href="mailto:{email}">{email}</a>')
-    if phone:
-        contact_line.append(phone)
-    
-    if contact_line:
-        html += f"        <div style=\"margin-top: 0.5em;\">{' <span class=\"separator\">•</span> '.join(contact_line)}</div>\n"
-    
-    html += """      </address>
-    </header>
-
-"""
-    
-    for section in sections:
-        section_name = section.get('section_name', '').lower()
-        
-        if any(keyword in section_name for keyword in ['contact', 'personal information', 'name']):
-            continue
-        
-        html += f"    <section class=\"section\">\n"
-        html += f"      <h2>{section.get('section_name', 'Section')}</h2>\n"
-        
-        subsections = section.get('subsections', [])
-        for subsection in subsections:
-            html += generate_subsection_html(subsection, section.get('section_name', ''))
-        
-        html += "    </section>\n\n"
-    
-    html += """  </div>
-</body>
-</html>"""
-    
-    return html
 
 def extract_contact_from_sections(sections: list) -> dict:
     """Extract contact information from sections"""
@@ -1301,6 +1185,182 @@ async def view_sharable_resume(resume_id: str):
             status_code=500
         )
 
+def generate_html_from_profile_data(profile_data: dict, metadata: dict) -> str:
+    """Generate clean HTML from profile JSON data with clickable links"""
+    sections = profile_data.get('sections', [])
+    
+    # Clean empty sections
+    sections = clean_empty_sections(sections)
+    
+    contact_info = extract_contact_from_sections(sections)
+    
+    name = contact_info.get('name') or metadata.get('name') or 'Resume'
+    
+    print(f"🎨 Generating HTML for: {name}")
+    
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{name} – Resume</title>
+  <style>
+    * {{
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }}
+
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f9fafb;
+      margin: 0;
+      padding: 20px;
+      line-height: 1.6;
+      color: #1f2937;
+    }}
+
+    .container {{
+      max-width: 800px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 3em;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }}
+
+    header {{
+      text-align: center;
+      margin-bottom: 2em;
+      padding-bottom: 1.5em;
+      border-bottom: 2px solid #3b82f6;
+    }}
+
+    h1 {{
+      margin: 0 0 0.5em 0;
+      font-size: 2.5em;
+      font-weight: 800;
+      color: #111827;
+      letter-spacing: -0.025em;
+    }}
+
+    h2 {{
+      margin-top: 2em;
+      padding-bottom: 6px;
+      font-size: 1.4em;
+      font-weight: 700;
+      border-bottom: 2px solid #e5e7eb;
+      color: #374151;
+      margin-bottom: 1em;
+      letter-spacing: -0.015em;
+    }}
+
+    h3 {{
+      margin: 0.8em 0 0.3em 0;
+      font-size: 1.15em;
+      color: #111827;
+      font-weight: 700;
+    }}
+
+    address {{
+      font-style: normal;
+      color: #4b5563;
+      font-size: 0.95em;
+      line-height: 1.7;
+    }}
+
+    ul {{
+      margin: 0.5em 0 0.5em 1.2em;
+      padding-left: 0;
+    }}
+
+    li {{
+      margin: 0.35em 0;
+      line-height: 1.6;
+      color: #374151;
+    }}
+
+    p {{
+      margin: 0.4em 0;
+      font-size: 0.98em;
+      color: #374151;
+      line-height: 1.6;
+    }}
+
+    a {{
+      color: #3b82f6;
+      text-decoration: underline;
+      font-weight: 600;
+      transition: color 0.2s;
+    }}
+
+    a:hover {{ color: #2563eb; }}
+
+    .section {{ margin-bottom: 2em; }}
+    .subsection {{ margin-bottom: 1.2em; }}
+    .contact-links {{ margin-top: 0.6em; }}
+    .separator {{ margin: 0 0.4em; color: #9ca3af; }}
+
+    @media print {{
+      body {{ background: white; padding: 0; }}
+      .container {{ box-shadow: none; padding: 1em; }}
+    }}
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <h1>{name}</h1>
+      <address>
+"""
+    
+    if contact_info.get('links'):
+        html += f"        <div class=\"contact-links\">{' <span class=\"separator\">•</span> '.join(contact_info['links'])}</div>\n"
+    
+    contact_line = []
+    email = contact_info.get('email') or metadata.get('email')
+    phone = contact_info.get('phone') or metadata.get('phone')
+    
+    if email:
+        contact_line.append(f'<a href="mailto:{email}">{email}</a>')
+    if phone:
+        contact_line.append(phone)
+    
+    if contact_line:
+        html += f"        <div style=\"margin-top: 0.5em;\">{' <span class=\"separator\">•</span> '.join(contact_line)}</div>\n"
+    
+    html += """      </address>
+    </header>
+
+"""
+    
+    for section in sections:
+        section_name = section.get('section_name', '').lower()
+        
+        if any(keyword in section_name for keyword in ['contact', 'personal information', 'name']):
+            continue
+        
+        # Format the section name properly
+        formatted_section_name = format_section_name(section.get('section_name', 'Section'))
+        
+        html += f"    <section class=\"section\">\n"
+        html += f"      <h2>{formatted_section_name}</h2>\n"
+        
+        subsections = section.get('subsections', [])
+        for subsection in subsections:
+            html += generate_subsection_html(subsection, section.get('section_name', ''))
+        
+        html += "    </section>\n\n"
+    
+    html += """  </div>
+</body>
+</html>"""
+    
+    return html
+
+
+# Update the generate_basic_html_resume function as well:
 def generate_basic_html_resume(profile_data: dict) -> str:
     """Generate basic HTML resume as fallback"""
     sections = clean_empty_sections(profile_data.get('sections', []))
@@ -1325,7 +1385,9 @@ def generate_basic_html_resume(profile_data: dict) -> str:
     
     for section in sections:
         html_parts.append(f'<div class="section">')
-        html_parts.append(f'<div class="section-title">{section.get("section_name", "")}</div>')
+        # Format section name properly
+        formatted_section_name = format_section_name(section.get("section_name", "Section"))
+        html_parts.append(f'<div class="section-title">{formatted_section_name}</div>')
         
         for subsection in section.get('subsections', []):
             html_parts.append(f'<div class="subsection">')
@@ -1443,25 +1505,167 @@ async def regenerate_resume(email: str):
         traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/process-jd")
-async def process_jd(file: UploadFile = File(...), jd_text: str = Form(...)):
-    # Read PDF text
-    content = await file.read()
-    pdf_reader = PyPDF2.PdfReader(io.BytesIO(content))
-    jd_text = " ".join([page.extract_text() for page in pdf_reader.pages])
+@app.post("/api/process-jd")
+async def process_jd(
+    email: str = Form(...),
+    jd_text: Optional[str] = Form(None),
+    file: Optional[UploadFile] = File(None)
+):
+    """Process JD from text or PDF and match with user's resume"""
+    try:
+        print(f"📋 Processing JD for user: {email}")
+        
+        # Validate input
+        if not jd_text and not file:
+            raise HTTPException(
+                status_code=400, 
+                detail="Either jd_text or file must be provided"
+            )
+        
+        # Get user's profile
+        profile = await profiles_collection.find_one({"email": email})
+        if not profile:
+            raise HTTPException(
+                status_code=404,
+                detail="User profile not found. Please upload your resume first."
+            )
+        
+        # Extract JD text
+        final_jd_text = jd_text
+        
+        if file:
+            print(f"📄 Processing JD from file: {file.filename}")
+            
+            if not file.filename.lower().endswith('.pdf'):
+                raise HTTPException(
+                    status_code=400,
+                    detail="Only PDF files are supported for JD upload"
+                )
+            
+            content = await file.read()
+            final_jd_text = extract_text_from_pdf(content)
+            
+            if not final_jd_text or len(final_jd_text.strip()) < 50:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Could not extract sufficient text from PDF"
+                )
+        
+        print(f"📝 JD text length: {len(final_jd_text)} characters")
+        
+        # Extract skills from JD using LLM
+        print("🤖 Extracting skills from JD using LLM...")
+        jd_skills = extract_skills_from_jd(final_jd_text)
+        
+        if not jd_skills:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to extract skills from job description"
+            )
+        
+        print(f"✅ Extracted {len(jd_skills)} skills from JD")
+        
+        # Extract skills from user's resume
+        resume_data = profile.get('resumeData', {})
+        resume_text_parts = extract_skills_from_resume_data(resume_data)
+        resume_full_text = " ".join(resume_text_parts)
+        
+        print("🤖 Extracting skills from resume using LLM...")
+        candidate_skills = extract_skills_from_text(resume_full_text)
+        
+        if not candidate_skills:
+            # Fallback: use simple extraction if LLM fails
+            print("⚠️ LLM extraction failed, using fallback method")
+            candidate_skills = resume_text_parts[:20]  # Take first 20 items
+        
+        print(f"✅ Extracted {len(candidate_skills)} skills from resume")
+        
+        # Compare skills
+        print("📊 Comparing skills...")
+        comparison_result = compare_skills(candidate_skills, jd_skills)
+        
+        # Generate recommendations using LLM
+        print("💡 Generating recommendations...")
+        recommendations = generate_recommendations(
+            jd_text=final_jd_text,
+            matched_skills=comparison_result['matched'],
+            missing_skills=comparison_result['missing'],
+            resume_text=resume_full_text
+        )
+        
+        # Prepare response
+        response_data = {
+            "jd_skills": jd_skills[:20],  # Limit to top 20 for display
+            "candidate_skills": candidate_skills[:20],
+            "matched_skills": comparison_result['matched'],
+            "missing_skills": comparison_result['missing'],
+            "match_percentage": comparison_result['match_percentage'],
+            "recommendations": recommendations,
+            "jd_text": final_jd_text[:500] + "..." if len(final_jd_text) > 500 else final_jd_text
+        }
+        
+        print(f"✅ JD matching complete - Match Score: {comparison_result['match_percentage']}%")
+        
+        return response_data
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ JD processing error: {e}")
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500,
+            detail=f"An error occurred while processing the job description: {str(e)}"
+        )
 
-    jd_skills = extract_skills_from_jd(jd_text)
-
-    # get skills from database and call compare function
-    candidate_skills = ["Python", "AWS", "Machine Learning"]  # Placeholder for actual skills from DB
-    matched, missed, match_score = compare_skills(jd_skills, candidate_skills)
-
-    # Sample return
-    return {
-        "matched_skills": matched,
-        "missed_skills": missed,
-        "match_score": f"{match_score}%"
-    }
+@app.post("/api/match-jd-text")
+async def match_jd_text(request: JDMatchRequest):
+    """Match JD text with user's resume"""
+    try:
+        print(f"📋 Matching JD text for user: {request.email}")
+        
+        # Get user's profile
+        profile = await profiles_collection.find_one({"email": request.email})
+        if not profile:
+            raise HTTPException(
+                status_code=404,
+                detail="User profile not found. Please upload your resume first."
+            )
+        
+        # Extract skills from JD
+        jd_skills = extract_skills_from_jd(request.jd_text)
+        
+        # Extract skills from resume
+        resume_data = profile.get('resumeData', {})
+        resume_text_parts = extract_skills_from_resume_data(resume_data)
+        resume_full_text = " ".join(resume_text_parts)
+        
+        candidate_skills = extract_skills_from_text(resume_full_text)
+        
+        # Compare
+        comparison_result = compare_skills(candidate_skills, jd_skills)
+        
+        # Generate recommendations
+        recommendations = generate_recommendations(
+            jd_text=request.jd_text,
+            matched_skills=comparison_result['matched'],
+            missing_skills=comparison_result['missing'],
+            resume_text=resume_full_text
+        )
+        
+        return {
+            "matched_skills": comparison_result['matched'],
+            "missing_skills": comparison_result['missing'],
+            "match_percentage": comparison_result['match_percentage'],
+            "recommendations": recommendations
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ JD text matching error: {e}")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn

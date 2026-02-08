@@ -1,4 +1,4 @@
-// src/services/api.js - COMPLETE VERSION with Profile API
+// src/services/api.js - UPDATED with JD Matching
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -175,7 +175,7 @@ export const resumeAPI = {
   },
 };
 
-// Profile API - WITH NAME EXTRACTION
+// Profile API
 export const profileAPI = {
   saveProfile: async (email, resumeData, selectedRoles) => {
     try {
@@ -277,18 +277,78 @@ export const profileAPI = {
     }
   },
 
-  matchJD: async (formData) => {
-      try {
-        console.log('Initiating JD Skill Extraction...');
-        const response = await api.post('/api/extract-skills', formData);
+  // JD Matching Methods
+  matchJD: async (email, jdText, jdFile) => {
+    try {
+      console.log('Matching JD:', { email, hasText: !!jdText, hasFile: !!jdFile });
 
-        console.log('Skills extracted successfully:', response.data);
-        return response.data;
-      } catch (error) {
-        console.error('JD Skill Extraction Error:', error);
-        throw error;
+      if (!email) {
+        throw new Error('Email is required');
       }
-    },
+
+      if (!jdText && !jdFile) {
+        throw new Error('Either JD text or file must be provided');
+      }
+
+      const formData = new FormData();
+      formData.append('email', email);
+      
+      if (jdText) {
+        formData.append('jd_text', jdText);
+      }
+      
+      if (jdFile) {
+        formData.append('file', jdFile);
+      }
+
+      const response = await api.post('/api/process-jd', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        timeout: 120000, // 2 minutes for LLM processing
+      });
+
+      console.log('JD matching response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('JD matching error:', error);
+      
+      if (error.code === 'ECONNABORTED') {
+        throw new Error('Request timed out. The JD might be too long. Please try again.');
+      }
+      
+      if (error.response?.data?.detail) {
+        throw new Error(error.response.data.detail);
+      }
+
+      throw error;
+    }
+  },
+
+  matchJDText: async (email, jdText) => {
+    try {
+      console.log('Matching JD text for:', email);
+
+      if (!email) {
+        throw new Error('Email is required');
+      }
+
+      if (!jdText || jdText.trim().length < 50) {
+        throw new Error('Job description must be at least 50 characters');
+      }
+
+      const response = await api.post('/api/match-jd-text', {
+        email,
+        jd_text: jdText,
+      });
+
+      console.log('JD text matching response:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('JD text matching error:', error);
+      throw error;
+    }
+  },
 };
 
 export default api;
