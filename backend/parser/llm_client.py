@@ -1,8 +1,8 @@
 import requests
-from typing import Type
+from typing import Type, Optional
 from pydantic import BaseModel
 
-def call_ollama(prompt: str, format_model: Type[BaseModel]) -> str:
+def call_ollama(prompt: str, format_model: Optional[Type[BaseModel]] = None) -> str:
     model = "llama3.2"
     url = "http://localhost:11434/api/generate" #TODO: Change according to EC2 setup
 
