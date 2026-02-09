@@ -14,7 +14,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 6000000,
+  timeout: 60000000,
 });
 
 // Request interceptor
@@ -124,7 +124,7 @@ export const resumeAPI = {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
-        timeout: 1200000,
+        timeout: 12000000,
       });
 
       console.log('Resume upload response:', response.data);
