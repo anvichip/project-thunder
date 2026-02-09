@@ -13,7 +13,7 @@ const ResumePopup = ({ resumeData, onClose, onCopyLink, userData }) => {
   const { user, isAuthenticated } = useAuth0();
 
   const getApiUrl = () => {
-    return import.meta.env.VITE_API_URL || 'http://localhost:8000';
+    return process.env.REACT_APP_BASE_API_URL || 'http://localhost:8000';
   };
 
   // Format section name (e.g., 'work_experience' -> 'Work Experience', 'links' -> 'Links')

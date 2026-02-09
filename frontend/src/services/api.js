@@ -1,7 +1,13 @@
 // src/services/api.js - UPDATED with JD Matching
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.REACT_APP_BASE_API_URL || 'http://localhost:8000';
+
+if (process.env.REACT_APP_BASE_API_URL) {
+  console.log('🔍 API Base URL:', process.env.REACT_APP_BASE_API_URL);
+} else {
+  console.log('❌ API Base URL is not defined');
+}
 
 const api = axios.create({
   baseURL: API_BASE_URL,

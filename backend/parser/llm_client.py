@@ -18,6 +18,6 @@ def call_ollama(prompt: str, format_model: Optional[Type[BaseModel]] = None) -> 
     if format_model:
         payload["format"] = format_model.model_json_schema()
 
-    resp = requests.post(url, json=payload, timeout=500)
+    resp = requests.post(url, json=payload, timeout=50000)
     resp.raise_for_status()
     return resp.json()["response"]

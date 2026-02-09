@@ -10,7 +10,7 @@ const ResumeTile = ({ resumeData, onClick }) => {
   const handleCopyLink = async (e) => {
     e.stopPropagation();
     
-    const apiUrl = import.meta.env.REACT_BASE_API_URL || 'http://localhost:8000';
+    const apiUrl = process.env.REACT_APP_BASE_API_URL || 'http://localhost:8000';
     const fullUrl = `${apiUrl}${resumeData.sharable_link}`;
     
     try {
@@ -95,7 +95,7 @@ const ResumeTile = ({ resumeData, onClick }) => {
             <p className="text-white font-bold text-base mb-3">Share Your Resume</p>
             <div className="bg-white/20 backdrop-blur-sm rounded-lg p-3 border border-white/30">
               <p className="text-white/90 text-xs font-mono truncate">
-                {import.meta.env.REACT_BASE_API_URL || 'http://localhost:8000'}{resumeData.sharable_link}
+                {process.env.REACT_APP_BASE_API_URL || 'http://localhost:8000'}{resumeData.sharable_link}
               </p>
             </div>
           </div>
