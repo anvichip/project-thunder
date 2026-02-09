@@ -19,16 +19,11 @@ const OnboardingProgressBar = ({ currentStep }) => {
     },
     {
       id: 4,
-      name: 'Culture',
-      description: 'Set preferences'
-    },
-    {
-      id: 5,
       name: 'Resume/CV',
       description: 'Review & confirm'
     },
     {
-      id: 6,
+      id: 5,
       name: 'Done',
       description: 'All set!'
     }

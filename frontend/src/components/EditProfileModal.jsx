@@ -1,4 +1,4 @@
-// src/components/EditProfileModal.jsx - Professional Redesign
+// src/components/EditProfileModal.jsx - Updated to match ProfileView theme
 import { useState, useEffect } from 'react';
 import { cleanText } from '../utils/textCleaner';
 
@@ -81,22 +81,22 @@ const EditProfileModal = ({ profileData, onSave, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 scale-in">
       <div className="bg-white rounded-2xl shadow-2xl max-w-7xl w-full max-h-[95vh] overflow-hidden border border-gray-200">
-        {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-teal-600 px-8 py-6 flex justify-between items-center z-10">
+        {/* Header - Now matches ProfileView style */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-6 flex justify-between items-center z-10">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/20 rounded-lg backdrop-blur-sm flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+              <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-white">Edit Your Profile</h2>
-              <p className="text-blue-100 text-sm mt-1 font-medium">Update your professional information</p>
+              <h2 className="text-2xl font-bold text-gray-900">Edit Your Profile</h2>
+              <p className="text-gray-600 text-sm mt-1">Update your professional information</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-white/90 hover:text-white hover:bg-white/20 rounded-lg p-2 transition-all"
+            className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-2 transition-all"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -113,11 +113,11 @@ const EditProfileModal = ({ profileData, onSave, onClose }) => {
 
               return (
                 <div key={sectionIndex} className="group">
-                  <div className="bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-200">
-                    {/* Section Header */}
-                    <div className="bg-gradient-to-r from-gray-900 to-gray-800 px-6 py-4 rounded-t-xl">
-                      <h3 className="text-xl font-bold text-white flex items-center gap-3">
-                        <span className="text-2xl">{getSectionIcon(cleanedSectionName)}</span>
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                    {/* Section Header - ProfileView style */}
+                    <div className="bg-gray-50 border-b border-gray-200 px-6 py-4">
+                      <h3 className="text-base font-semibold text-gray-900 flex items-center gap-3">
+                        <span className="text-xl">{getSectionIcon(cleanedSectionName)}</span>
                         <span>{cleanedSectionName}</span>
                       </h3>
                     </div>
@@ -128,10 +128,10 @@ const EditProfileModal = ({ profileData, onSave, onClose }) => {
                         <div key={subsectionIndex} className="bg-gray-50 rounded-lg p-5 border border-gray-200">
                           <div className="flex justify-between items-start mb-4">
                             <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                                <span className="text-blue-600 font-bold text-sm">{subsectionIndex + 1}</span>
+                              <div className="w-8 h-8 bg-white rounded-lg border border-gray-200 flex items-center justify-center">
+                                <span className="text-gray-700 font-bold text-sm">{subsectionIndex + 1}</span>
                               </div>
-                              <h4 className="text-sm font-bold text-gray-800 uppercase">
+                              <h4 className="text-sm font-semibold text-gray-700 uppercase">
                                 Subsection {subsectionIndex + 1}
                               </h4>
                             </div>
@@ -139,7 +139,7 @@ const EditProfileModal = ({ profileData, onSave, onClose }) => {
                               <button
                                 type="button"
                                 onClick={() => removeSubsection(sectionIndex, subsectionIndex)}
-                                className="text-red-500 hover:text-white hover:bg-red-500 rounded-lg p-2 transition-all"
+                                className="text-red-600 hover:text-white hover:bg-red-600 rounded-lg p-2 transition-all"
                                 title="Remove subsection"
                               >
                                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">

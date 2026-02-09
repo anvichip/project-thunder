@@ -1,4 +1,4 @@
-// src/components/EditRolesModal.jsx - Professional Redesign
+// src/components/EditRolesModal.jsx - Updated to match ProfileView theme
 import { useState, useEffect } from 'react';
 
 const EditRolesModal = ({ selectedRoles = [], onSave, onClose }) => {
@@ -78,22 +78,22 @@ const EditRolesModal = ({ selectedRoles = [], onSave, onClose }) => {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 scale-in">
       <div className="bg-white rounded-2xl shadow-2xl max-w-6xl w-full max-h-[95vh] overflow-hidden border border-gray-200">
-        {/* Header */}
-        <div className="sticky top-0 bg-gradient-to-r from-purple-600 to-pink-600 px-8 py-6 flex justify-between items-center z-10">
+        {/* Header - Now matches ProfileView style */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-8 py-6 flex justify-between items-center z-10">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 bg-white/20 rounded-lg backdrop-blur-sm flex items-center justify-center">
-              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+              <svg className="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
               </svg>
             </div>
             <div>
-              <h2 className="text-2xl font-bold text-white">Edit Career Roles</h2>
-              <p className="text-purple-100 text-sm mt-1 font-medium">Select roles that match your career goals</p>
+              <h2 className="text-2xl font-bold text-gray-900">Edit Career Roles</h2>
+              <p className="text-gray-600 text-sm mt-1">Select roles that match your career goals</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-white/90 hover:text-white hover:bg-white/20 rounded-lg p-2 transition-all"
+            className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg p-2 transition-all"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -116,7 +116,7 @@ const EditRolesModal = ({ selectedRoles = [], onSave, onClose }) => {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search for roles..."
-                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                  className="w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
             </div>
@@ -133,8 +133,8 @@ const EditRolesModal = ({ selectedRoles = [], onSave, onClose }) => {
                     className={`
                       relative px-4 py-3 rounded-lg text-sm font-semibold transition-all text-left
                       ${isSelected 
-                        ? 'bg-purple-600 text-white shadow-md border-2 border-purple-600' 
-                        : 'bg-white text-gray-700 hover:bg-gray-50 border-2 border-gray-200 hover:border-gray-300'
+                        ? 'bg-gray-900 text-white shadow-sm border border-gray-900' 
+                        : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-gray-300'
                       }
                     `}
                   >
@@ -174,17 +174,17 @@ const EditRolesModal = ({ selectedRoles = [], onSave, onClose }) => {
 
             {/* Selected Roles Display */}
             {roles.length > 0 && (
-              <div className="bg-purple-50 rounded-lg p-6 border-2 border-purple-200">
+              <div className="bg-white rounded-lg p-6 border border-gray-200 shadow-sm">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-purple-900 flex items-center gap-3">
-                    <div className="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                  <h3 className="font-bold text-gray-900 flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gray-900 rounded-lg flex items-center justify-center">
                       <svg className="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 20 20">
                         <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                       </svg>
                     </div>
                     Your Selected Roles
                   </h3>
-                  <span className="px-4 py-2 bg-white rounded-lg text-purple-700 font-bold text-sm">
+                  <span className="px-4 py-2 bg-gray-100 rounded-lg text-gray-700 font-bold text-sm">
                     {roles.length} {roles.length === 1 ? 'Role' : 'Roles'}
                   </span>
                 </div>
@@ -192,13 +192,13 @@ const EditRolesModal = ({ selectedRoles = [], onSave, onClose }) => {
                   {roles.map((role, index) => (
                     <span
                       key={index}
-                      className="inline-flex items-center gap-2 bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-semibold"
+                      className="inline-flex items-center gap-2 bg-gray-100 text-gray-700 px-3 py-1.5 rounded border border-gray-200 text-sm font-semibold"
                     >
                       <span>{role}</span>
                       <button
                         type="button"
                         onClick={() => toggleRole(role)}
-                        className="hover:bg-white/20 rounded-full p-0.5 transition"
+                        className="hover:bg-gray-200 rounded-full p-0.5 transition"
                         title="Remove role"
                       >
                         <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">

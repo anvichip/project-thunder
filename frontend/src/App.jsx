@@ -7,6 +7,7 @@ import RoleSelection from './components/RoleSelection';
 import Congratulations from './components/Congratulations';
 import MainDashboard from './components/MainDashboard';
 import { profileAPI } from './services/api';
+import LandingPage from './components/LandingPage';
 import './index.css';
 
 function App() {
@@ -220,7 +221,11 @@ function App() {
 
   return (
     <div className="App">
-      {currentView === 'login' && (
+      {currentView === 'login' && !isAuthenticated && (
+        <LandingPage />
+      )}
+
+      {currentView === 'login' && isAuthenticated && (
         <LoginPage onLogin={handleLogin} />
       )}
 
