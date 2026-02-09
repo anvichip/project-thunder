@@ -13,8 +13,10 @@ def call_ollama(prompt: str, format_model: Optional[Type[BaseModel]] = None) -> 
         "options": {
             "temperature": 0
         },
-        "format": format_model.model_json_schema()
     }
+
+    if format_model:
+        payload["format"] = format_model.model_json_schema()
 
     resp = requests.post(url, json=payload, timeout=500)
     resp.raise_for_status()

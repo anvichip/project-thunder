@@ -71,11 +71,11 @@ const LoginPage = ({ onLogin, onSwitchToRegister }) => {
               </div>
               <span className="text-xl font-bold text-gray-900">RESLY.AI : Resume Simplified</span>
             </div>
-            <div className="hidden md:flex items-center gap-6">
+            {/* <div className="hidden md:flex items-center gap-6">
               <a href="#features" className="text-gray-600 hover:text-gray-900 font-medium">Features</a>
               <a href="#how-it-works" className="text-gray-600 hover:text-gray-900 font-medium">How It Works</a>
               <a href="#pricing" className="text-gray-600 hover:text-gray-900 font-medium">Pricing</a>
-            </div>
+            </div> */}
           </div>
         </div>
       </nav>
@@ -93,7 +93,7 @@ const LoginPage = ({ onLogin, onSwitchToRegister }) => {
                 <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                 </svg>
-                Trusted by 10,000+ professionals
+                Trusted by professionals
               </div>
               
               <h1 className="text-5xl font-bold text-white mb-6 leading-tight">
@@ -145,7 +145,7 @@ const LoginPage = ({ onLogin, onSwitchToRegister }) => {
             </div>
 
             {/* Stats */}
-            <div className="mt-12 grid grid-cols-3 gap-6">
+            {/* <div className="mt-12 grid grid-cols-3 gap-6">
               <div>
                 <div className="text-3xl font-bold text-white">10K+</div>
                 <div className="text-blue-100 text-sm">Active Users</div>
@@ -158,7 +158,7 @@ const LoginPage = ({ onLogin, onSwitchToRegister }) => {
                 <div className="text-3xl font-bold text-white">95%</div>
                 <div className="text-blue-100 text-sm">Success Rate</div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
 
@@ -296,7 +296,7 @@ const LoginPage = ({ onLogin, onSwitchToRegister }) => {
             </div>
 
             {/* Trust Badges */}
-            <div className="mt-8 text-center">
+            {/* <div className="mt-8 text-center">
               <p className="text-xs text-gray-500 mb-3">Trusted by professionals at</p>
               <div className="flex items-center justify-center gap-6 opacity-50">
                 <div className="text-gray-700 font-semibold text-sm">Google</div>
@@ -304,7 +304,7 @@ const LoginPage = ({ onLogin, onSwitchToRegister }) => {
                 <div className="text-gray-700 font-semibold text-sm">Amazon</div>
                 <div className="text-gray-700 font-semibold text-sm">Meta</div>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
